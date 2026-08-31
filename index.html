@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Prevent HTML Cache -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <title>AR のぼり旗メーカー | 疑似WebAR のぼり旗配置ツール</title>
+    <meta name="description" content="WebXR不要！スマートフォンの標準ブラウザで動作するマーカーレス疑似WebARツールです。お手持ちの画像でのぼり旗を作成し、現実空間に配置・撮影できます。">
+
+    <meta property="og:title" content="AR のぼり旗メーカー">
+    <meta property="og:description" content="スマホのカメラ映像とジャイロセンサーで、お手持ちの画像を使ったのぼり旗を空間に配置・撮影できる疑似WebARツールです。">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="AR のぼり旗メーカー">
+
+    <meta name="twitter:card" content="summary">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <!-- ============================================================
+         スタート画面 (案内・利用設定)
+         ============================================================ -->
+    <div id="startScreen" class="start-screen-container">
+        <div class="container">
+            <!-- Header Meta -->
+            <div class="header-meta">
+                <div class="version-group">
+                    <span class="version-badge">v0.1.0</span>
+                    <a href="https://github.com/nyaftama/ar-banner-flag#%E6%9B%B4%E6%96%B0%E5%B1%A5%E6%AD%B4"
+                        target="_blank" rel="noopener noreferrer" class="changelog-link">更新履歴</a>
+                </div>
+                <a href="https://nyaftama.github.io/" target="_blank" rel="noopener noreferrer" class="credit-link">
+                    作った人: <strong>@nyaftama</strong>
+                </a>
+            </div>
+
+            <!-- Title Header -->
+            <h1 class="main-title">
+                AR のぼり旗メーカー<br>
+                <span class="sub-title">疑似WebAR のぼり旗配置ツール</span>
+            </h1>
+            <div class="eng-title">AR BANNER FLAG PLACEMENT TOOL</div>
+
+            <div class="tool-links">
+                <a href="https://nyaftama.github.io/uma-ouen-baken/" target="_blank" rel="noopener noreferrer"
+                    class="tool-link">
+                    <span>推しバ券メーカー</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                </a>
+                <a href="https://nyaftama.github.io/uma-new-era-title/" target="_blank" rel="noopener noreferrer"
+                    class="tool-link">
+                    <span>劇場版レース名メーカー</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                </a>
+                <a href="https://nyaftama.github.io/" target="_blank" rel="noopener noreferrer"
+                    class="tool-link-subtle">
+                    <span>すべて見る</span>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                </a>
+            </div>
+
+            <!-- Card: About & Start -->
+            <div class="card">
+                <div class="card-title">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="2" width="20" height="20" rx="3"></rect>
+                        <path d="M7 2v20"></path>
+                        <line x1="7" y1="5" x2="17" y2="5"></line>
+                        <path d="M17 5c0 0-2 2-5 4s-5 5-5 8"></path>
+                    </svg>
+                    <span>ツールの概要と使い方</span>
+                </div>
+
+                <div class="guide-steps">
+                    <div class="guide-step-item">
+                        <div class="guide-step-num">1</div>
+                        <div class="guide-step-text">
+                            <strong>カメラとジャイロで疑似AR体験</strong>
+                            <p>WebXR Device APIを使用せず、スマートフォンの背面カメラとジャイロセンサーで空間にのぼり旗を配置します（Android Chrome / iOS Safari
+                                対応）。</p>
+                        </div>
+                    </div>
+                    <div class="guide-step-item">
+                        <div class="guide-step-num">2</div>
+                        <div class="guide-step-text">
+                            <strong>お好きな画像でのぼり旗を生成（最大3本）</strong>
+                            <p>画面下の「旗を追加」ボタンからお好みの画像を選ぶと、ポールとスタンドが付いたのぼり旗が目の前に出現します。</p>
+                        </div>
+                    </div>
+                    <div class="guide-step-item">
+                        <div class="guide-step-num">3</div>
+                        <div class="guide-step-text">
+                            <strong>タッチ操作と環境シミュレーション</strong>
+                            <p>スワイプで位置移動、ピンチイン・アウトで拡縮、ポールの色変更、さらに風でなびく向き・強さや光・影の調整がリアルタイムに行えます。</p>
+                        </div>
+                    </div>
+                    <div class="guide-step-item">
+                        <div class="guide-step-num">4</div>
+                        <div class="guide-step-text">
+                            <strong>シャッター機能で画像保存</strong>
+                            <p>カメラ映像と手前の3Dのぼり旗を1枚に合成し、端末にダウンロード保存できます。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dropzone Privacy Note -->
+                <p class="dropzone-privacy-note">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <span>カメラ映像や画像はすべてブラウザ内（端末内）で処理され、サーバー等へアップロードされることはありません。</span>
+                </p>
+
+                <!-- Start Button Group -->
+                <div class="btn-group">
+                    <button type="button" id="startBtn" class="btn btn-primary btn-large">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
+                            </path>
+                            <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                        <span>ARカメラを起動する</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer>
+                <p>※当ツールはファンメイドの疑似WebARツールです。</p>
+                <p>&copy; 2026 nyaftama</p>
+            </footer>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         AR ビュー
+         ============================================================ -->
+    <div id="arView" class="ar-view" style="display: none;">
+
+        <!-- カメラ映像 (最背面) -->
+        <video id="cameraVideo" class="camera-video" autoplay playsinline muted></video>
+
+        <!-- Three.js Canvas (手前) -->
+        <canvas id="arCanvas" class="ar-canvas"></canvas>
+
+        <!-- ─── コントロールパネル (下部オーバーレイ) ─── -->
+        <div id="controlPanel" class="control-panel">
+
+            <!-- ハンドル (タップで展開/収納) -->
+            <div id="panelHandle" class="panel-handle" title="設定パネルを開閉">
+                <div class="handle-bar"></div>
+                <span class="handle-text">環境・調整メニュー</span>
+                <svg class="handle-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                </svg>
+            </div>
+
+            <!-- メインアクションバー (常時表示) -->
+            <div class="panel-main-actions">
+                <button type="button" id="addFlagBtn" class="btn btn-primary btn-action">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    <span>旗を追加</span>
+                </button>
+
+                <div class="flag-count-badge">
+                    <span class="flag-count-label">配置数</span>
+                    <span id="flagCount" class="flag-count-val">0 / 3</span>
+                </div>
+
+                <button type="button" id="shutterBtn" class="btn btn-shutter" aria-label="撮影して保存" title="撮影して保存">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
+                        </path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- 展開エリア -->
+            <div id="panelExpanded" class="panel-expanded">
+
+                <!-- 選択中の旗のカスタマイズ -->
+                <div id="selectedFlagControls" class="selected-flag-controls">
+                    <div class="selected-flag-header">
+                        <span class="selected-flag-label">
+                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            選択中ののぼり旗の設定
+                        </span>
+                        <button type="button" id="deleteFlagBtn" class="btn btn-danger btn-small">
+                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                                <path d="M10 11v6"></path>
+                                <path d="M14 11v6"></path>
+                            </svg>
+                            削除
+                        </button>
+                    </div>
+                    <div class="color-controls-grid">
+                        <div class="color-control-item">
+                            <label for="poleColor" class="form-label">ポールの色</label>
+                            <div class="color-picker-wrapper">
+                                <input type="color" id="poleColor" class="color-input" value="#C0C0C0">
+                                <span class="color-picker-hint">タップして色を変更</span>
+                            </div>
+                        </div>
+                        <div class="color-control-item">
+                            <label for="standColor" class="form-label">スタンドの色</label>
+                            <div class="color-picker-wrapper">
+                                <input type="color" id="standColor" class="color-input" value="#333333">
+                                <span class="color-picker-hint">タップして色を変更</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 環境パラメータ設定カード -->
+                <div class="settings-grid">
+                    <!-- 風パラメータ -->
+                    <div class="setting-block">
+                        <div class="setting-block-title">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path
+                                    d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2">
+                                </path>
+                            </svg>
+                            <span>風の設定（なびき）</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="windAngle" class="form-label">風の向き</label>
+                            <div class="range-wrapper">
+                                <input type="range" id="windAngle" class="range-input" min="0" max="360" value="90">
+                                <span id="windAngleVal" class="range-val">90°</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="windStrength" class="form-label">風の強さ</label>
+                            <div class="range-wrapper">
+                                <input type="range" id="windStrength" class="range-input" min="0" max="100" value="30">
+                                <span id="windStrengthVal" class="range-val">30%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ライト & 影パラメータ -->
+                    <div class="setting-block">
+                        <div class="setting-block-title">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="5"></circle>
+                                <line x1="12" y1="1" x2="12" y2="3"></line>
+                                <line x1="12" y1="21" x2="12" y2="23"></line>
+                                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                                <line x1="1" y1="12" x2="3" y2="12"></line>
+                                <line x1="21" y1="12" x2="23" y2="12"></line>
+                                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                            </svg>
+                            <span>光と影の設定</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="lightAngle" class="form-label">光の向き</label>
+                            <div class="range-wrapper">
+                                <input type="range" id="lightAngle" class="range-input" min="0" max="360" value="45">
+                                <span id="lightAngleVal" class="range-val">45°</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="lightStrength" class="form-label">光の強さ</label>
+                            <div class="range-wrapper">
+                                <input type="range" id="lightStrength" class="range-input" min="0" max="200"
+                                    value="100">
+                                <span id="lightStrengthVal" class="range-val">100%</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="shadowIntensity" class="form-label">影の濃さ</label>
+                            <div class="range-wrapper">
+                                <input type="range" id="shadowIntensity" class="range-input" min="0" max="100"
+                                    value="40">
+                                <span id="shadowIntensityVal" class="range-val">40%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-footer-note">
+                    <span>※画面上の旗を1本指でスワイプすると移動、2本指でピンチすると拡大縮小ができます。</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 隠しファイル入力 -->
+    <input type="file" id="flagFileInput" accept="image/*" style="display: none;">
+
+    <!-- Toast 通知 -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Three.js (グローバル読み込み) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.min.js"></script>
+
+    <!-- アプリケーション (ES Module) -->
+    <script type="module" src="js/app.js"></script>
+
+</body>
+
+</html>
