@@ -168,7 +168,11 @@ export class ARScene {
     this._renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this._renderer.shadowMap.enabled = true;
     this._renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this._renderer.outputColorSpace = THREE.SRGBColorSpace;
+    if (THREE.SRGBColorSpace) {
+      this._renderer.outputColorSpace = THREE.SRGBColorSpace;
+    } else if (THREE.sRGBEncoding) {
+      this._renderer.outputEncoding = THREE.sRGBEncoding;
+    }
   }
 
   _initLighting() {

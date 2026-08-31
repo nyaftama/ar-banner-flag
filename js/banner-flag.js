@@ -64,7 +64,11 @@ export class BannerFlag {
       loader.load(
         imageUrl,
         (texture) => {
-          texture.colorSpace = THREE.SRGBColorSpace;
+          if (THREE.SRGBColorSpace) {
+            texture.colorSpace = THREE.SRGBColorSpace;
+          } else if (THREE.sRGBEncoding) {
+            texture.encoding = THREE.sRGBEncoding;
+          }
           this._buildFlagMesh(texture);
           resolve();
         },
