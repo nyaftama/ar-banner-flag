@@ -7,9 +7,10 @@
  * カメラ映像と3Dシーンを1枚の画像に合成し、Blobを返す
  * @param {HTMLVideoElement} video - カメラ映像の video 要素
  * @param {THREE.WebGLRenderer} renderer - Three.js レンダラー
+ * @param {number} [zoom=1] - ズーム倍率 (1 または 2)
  * @returns {Promise<Blob>}
  */
-export async function captureComposite(video, renderer) {
+export async function captureComposite(video, renderer, zoom = 1) {
   const width = renderer.domElement.width;
   const height = renderer.domElement.height;
 
@@ -19,7 +20,7 @@ export async function captureComposite(video, renderer) {
   offscreen.height = height;
   const ctx = offscreen.getContext('2d');
 
-  // 1) 背景: カメラ映像を描画（アスペクト比を維持して中央にフィット）
+  // 1) 背景: カメラ映像を描画（アスペクト比を維持して中央にフィット＆ズームクロップ）
   const videoAspect = video.videoWidth / video.videoHeight;
   const canvasAspect = width / height;
 
@@ -33,6 +34,17 @@ export async function captureComposite(video, renderer) {
     sh = video.videoWidth / canvasAspect;
     sy = (video.videoHeight - sh) / 2;
   }
+
+  // ズーム適用 (中央からクロップ)
+  if (zoom > 1) {
+    const croppedW = sw / zoom;
+    const croppedH = sh / zoom;
+    sx += (sw - croppedW) / 2;
+    sy += (sh - croppedH) / 2;
+    sw = croppedW;
+    sh = croppedH;
+  }
+
   ctx.drawImage(video, sx, sy, sw, sh, 0, 0, width, height);
 
   // 2) 前景: WebGL Canvas を重ねて描画

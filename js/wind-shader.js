@@ -26,10 +26,11 @@ const flagVertexShader = /* glsl */ `
     float fixY = 1.0 - smoothstep(0.88, 1.0, uv.y);
     float fixFactor = fixX * fixY;
 
-    // ── 風の方向ベクトル ──
+    // ── 風の吹く先方向ベクトル ──
+    // 0°=奥(-Z), 90°=右(+X), 180°=手前(+Z), 270°=左(-X)
     float windRad = uWindAngle;
-    float windDirX = cos(windRad);
-    float windDirZ = sin(windRad);
+    float windDirX = sin(windRad);
+    float windDirZ = -cos(windRad);
 
     // ── 複数周波数の波形で自然な揺れを表現 ──
     float t = uTime;
@@ -38,13 +39,15 @@ const flagVertexShader = /* glsl */ `
     float wave3 = sin(t * 1.3 + pos.y * 1.5) * 0.30;
     float wave  = wave1 + wave2 + wave3;
 
-    float disp = wave * uWindStrength * fixFactor;
+    // 風下への定常流され変位 + 波打ち振動
+    float push = uWindStrength * fixFactor * 0.35;
+    float flutter = wave * uWindStrength * fixFactor * 0.55;
 
-    // Z方向を主に、X方向にも少し変位
-    pos.z += disp * windDirZ * 0.8;
-    pos.x += disp * windDirX * 0.25;
+    // Z方向（布の面外）およびX方向へ風下に向けて変位
+    pos.z += (push * 0.7 + flutter) * windDirZ;
+    pos.x += (push * 0.4 + flutter * 0.3) * windDirX;
     // 風で引っ張られた分の微小な垂れ下がり
-    pos.y -= abs(disp) * 0.04;
+    pos.y -= abs(flutter) * 0.04;
 
     vNormal = normalize(normalMatrix * normal);
     vec4 worldPos = modelMatrix * vec4(pos, 1.0);
@@ -54,10 +57,11 @@ const flagVertexShader = /* glsl */ `
   }
 `;
 
-/** フラグメントシェーダー: テクスチャ描画 + 簡易ライティング + 不透明度 */
+/** フラグメントシェーダー: テクスチャ描画 + 簡易ライティング + 光色 + 不透明度 */
 const flagFragmentShader = /* glsl */ `
   uniform sampler2D uTexture;
   uniform vec3 uLightDir;
+  uniform vec3 uLightColor;
   uniform float uLightIntensity;
   uniform float uOpacity;
 
@@ -75,9 +79,11 @@ const flagFragmentShader = /* glsl */ `
 
     // 裏面も少し照らす (両面ライティング)
     float backDiffuse = max(-NdotL, 0.0) * uLightIntensity * 0.4;
-    float totalLight = 0.35 + (diffuse + backDiffuse) * 0.65;
+    vec3 ambient = vec3(0.35);
+    vec3 lightContrib = (diffuse + backDiffuse) * 0.65 * uLightColor;
+    vec3 finalLight = ambient + lightContrib;
 
-    gl_FragColor = vec4(texColor.rgb * totalLight, texColor.a * uOpacity);
+    gl_FragColor = vec4(texColor.rgb * finalLight, texColor.a * uOpacity);
   }
 `;
 
@@ -95,6 +101,7 @@ export function createWindMaterial(texture, opacity = 0.90) {
       uWindStrength:  { value: 0.3 },
       uWindAngle:     { value: Math.PI * 0.5 },
       uLightDir:      { value: new THREE.Vector3(1, 1, 1).normalize() },
+      uLightColor:    { value: new THREE.Color(1, 1, 1) },
       uLightIntensity: { value: 1.0 },
       uOpacity:       { value: opacity },
     },

@@ -22,7 +22,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="css/style.css?v=0.50">
+    <link rel="stylesheet" href="css/style.css?v=0.90">
 </head>
 
 <body>
@@ -33,7 +33,7 @@
             <!-- Header Meta -->
             <div class="header-meta">
                 <div class="version-group">
-                    <span class="version-badge">v0.50</span>
+                    <span class="version-badge">v0.90</span>
                     <a href="https://github.com/nyaftama/ar-banner-flag#%E6%9B%B4%E6%96%B0%E5%B1%A5%E6%AD%B4"
                         target="_blank" rel="noopener noreferrer" class="changelog-link">更新履歴</a>
                 </div>
@@ -114,7 +114,7 @@
                     <div class="guide-step-item">
                         <div class="guide-step-num">2</div>
                         <div class="guide-step-text">
-                            <strong>お好きな画像でのぼり旗を生成（最大3本）</strong>
+                            <strong>お好みの画像でのぼり旗を生成（最大3本）</strong>
                             <p>画面下の「旗を追加」ボタンからお好みの画像を選ぶと、ポールとスタンドが付いたのぼり旗が目の前に出現します。</p>
                         </div>
                     </div>
@@ -153,7 +153,7 @@
                             </path>
                             <circle cx="12" cy="13" r="4"></circle>
                         </svg>
-                        <span>ARカメラを起動する</span>
+                        <span>ARカメラを起動</span>
                     </button>
                 </div>
             </div>
@@ -170,11 +170,34 @@
          ============================================================ -->
     <div id="arView" class="ar-view" style="display: none;">
 
-        <!-- カメラ映像 (最背面) -->
-        <video id="cameraVideo" class="camera-video" autoplay playsinline muted></video>
+        <!-- プレビュー画面 (個別調整パネル表示時に上へシフト) -->
+        <div id="cameraViewport" class="camera-viewport">
+            <!-- カメラ映像 (最背面) -->
+            <video id="cameraVideo" class="camera-video" autoplay playsinline muted></video>
 
-        <!-- Three.js Canvas (手前) -->
-        <canvas id="arCanvas" class="ar-canvas"></canvas>
+            <!-- Three.js Canvas (手前) -->
+            <canvas id="arCanvas" class="ar-canvas"></canvas>
+        </div>
+
+        <!-- ─── 画面右上コントロール (カメラ切替・倍率変更) ─── -->
+        <div class="ar-top-controls">
+            <button type="button" id="switchCameraBtn" class="btn-top-control" title="背面カメラ切り替え" aria-label="背面カメラ切り替え">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 10V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3"></path>
+                    <path d="M4 14v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path>
+                    <path d="M16 2l4 4-4 4"></path>
+                    <path d="M8 22l-4-4 4-4"></path>
+                </svg>
+            </button>
+            <button type="button" id="zoomToggleBtn" class="btn-top-control btn-zoom" title="倍率切り替え (1x/2x)"
+                aria-label="倍率切り替え">
+                <span id="zoomLabel">1x</span>
+            </button>
+        </div>
+
+        <!-- ─── 旗移動・拡縮中の情報表示バッジ ─── -->
+        <div id="flagTransformInfo" class="flag-transform-info" style="display: none;"></div>
 
         <!-- ─── コントロールパネル (下部オーバーレイ) ─── -->
         <div id="controlPanel" class="control-panel">
@@ -193,13 +216,13 @@
                 <!-- 1番目（左）: フォトライブラリボタン -->
                 <div class="panel-action-left">
                     <button type="button" id="galleryBtn" class="btn btn-gallery" title="撮影した写真を見る">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                             <circle cx="8.5" cy="8.5" r="1.5"></circle>
                             <polyline points="21 15 16 10 5 21"></polyline>
                         </svg>
-                        <span>写真</span>
+                        <span>写真一覧</span>
                         <span id="galleryCountBadge" class="gallery-badge">0</span>
                     </button>
                 </div>
@@ -207,8 +230,8 @@
                 <!-- 2番目（中央）: シャッターボタン -->
                 <div class="panel-action-center">
                     <button type="button" id="shutterBtn" class="btn btn-shutter" aria-label="撮影" title="撮影">
-                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
                             </path>
                             <circle cx="12" cy="13" r="4"></circle>
@@ -219,132 +242,108 @@
                 <!-- 3番目（右）: 旗を追加ボタン + 設置数バッジ -->
                 <div class="panel-action-right">
                     <button type="button" id="addFlagBtn" class="btn btn-primary btn-action" title="旗を追加">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
                             <line x1="4" y1="22" x2="4" y2="15"></line>
                             <line x1="17" y1="17" x2="17" y2="23"></line>
                             <line x1="14" y1="20" x2="20" y2="20"></line>
                         </svg>
                         <span>旗を追加</span>
-                        <span id="flagCount" class="flag-count-pill">0/3</span>
+                        <span id="flagCount" class="flag-count-pill">0</span>
                     </button>
                 </div>
             </div>
 
-            <!-- 展開エリア -->
+            <!-- 展開エリア (ダッシュボード形式) -->
             <div id="panelExpanded" class="panel-expanded">
 
-                <!-- 選択中の旗のカスタマイズ -->
-                <div id="selectedFlagControls" class="selected-flag-controls">
-                    <div class="selected-flag-header">
-                        <span class="selected-flag-label">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
-                                stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
-                                <line x1="4" y1="22" x2="4" y2="15"></line>
-                            </svg>
-                            <span>選択中ののぼり旗の設定</span>
-                        </span>
+                <!-- ─── 旗設定グリッド (旗選択時のみ表示) ─── -->
+                <div id="flagDashboardSection" class="dashboard-section" style="display: none;">
+                    <div class="dashboard-section-header">
+                        <div class="dashboard-section-title-group">
+                            <span class="dashboard-section-title" id="selectedFlagTitle">選択中の旗</span>
+                            <button type="button" id="switchFlagBtn" class="btn btn-small btn-switch-flag" title="別の旗に切り替え" disabled>
+                                切替
+                            </button>
+                        </div>
                         <button type="button" id="deleteFlagBtn" class="btn btn-danger btn-small">
                             削除
                         </button>
                     </div>
-                    <div class="color-controls-grid">
-                        <div class="color-control-item">
-                            <label for="poleColor" class="form-label">ポールの色</label>
-                            <div class="color-picker-wrapper">
-                                <input type="color" id="poleColor" class="color-input" value="#C0C0C0">
-                                <span class="color-picker-hint">タップして色を変更</span>
-                            </div>
-                        </div>
-                        <div class="color-control-item">
-                            <label for="standColor" class="form-label">スタンドの色</label>
-                            <div class="color-picker-wrapper">
-                                <input type="color" id="standColor" class="color-input" value="#333333">
-                                <span class="color-picker-hint">タップして色を変更</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group" style="margin-top: 12px; margin-bottom: 0;">
-                        <label for="flagOpacity" class="form-label">旗の不透明度</label>
-                        <div class="range-wrapper">
-                            <input type="range" id="flagOpacity" class="range-input" min="10" max="100" value="90">
-                            <span id="flagOpacityVal" class="range-val">90%</span>
-                        </div>
+                    <div class="dashboard-grid">
+                        <!-- 旗の向き (Y軸回転) -->
+                        <button type="button" class="dashboard-tile" data-setting="flagRotation">
+                            <div class="tile-icon" id="tileIconFlagRotation"></div>
+                            <div class="tile-label">旗の向き</div>
+                            <div class="tile-value" id="tileValFlagRotation">90°</div>
+                        </button>
+                        <!-- 旗の不透明度 -->
+                        <button type="button" class="dashboard-tile" data-setting="flagOpacity">
+                            <div class="tile-icon" id="tileIconFlagOpacity"></div>
+                            <div class="tile-label">旗の透明度</div>
+                            <div class="tile-value" id="tileValFlagOpacity">90%</div>
+                        </button>
+                        <!-- ポールの色 -->
+                        <button type="button" class="dashboard-tile" data-setting="poleColor">
+                            <div class="tile-icon" id="tileIconPoleColor"></div>
+                            <div class="tile-label">ポールの色</div>
+                            <div class="tile-value" id="tileValPoleColor">#C0C0C0</div>
+                        </button>
+                        <!-- スタンドの色 -->
+                        <button type="button" class="dashboard-tile" data-setting="standColor">
+                            <div class="tile-icon" id="tileIconStandColor"></div>
+                            <div class="tile-label">スタンドの色</div>
+                            <div class="tile-value" id="tileValStandColor">#333333</div>
+                        </button>
                     </div>
                 </div>
 
-                <!-- 環境パラメータ設定カード -->
-                <div class="settings-grid">
-                    <!-- 風パラメータ -->
-                    <div class="setting-block">
-                        <div class="setting-block-title">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path
-                                    d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2">
-                                </path>
-                            </svg>
-                            <span>風の設定（なびき）</span>
-                        </div>
-                        <div class="form-group">
-                            <label for="windAngle" class="form-label">風の向き</label>
-                            <div class="range-wrapper">
-                                <input type="range" id="windAngle" class="range-input" min="0" max="360" value="90">
-                                <span id="windAngleVal" class="range-val">90°</span>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="windStrength" class="form-label">風の強さ</label>
-                            <div class="range-wrapper">
-                                <input type="range" id="windStrength" class="range-input" min="0" max="100" value="30">
-                                <span id="windStrengthVal" class="range-val">30%</span>
-                            </div>
-                        </div>
+                <!-- ─── 環境設定グリッド ─── -->
+                <div class="dashboard-section">
+                    <div class="dashboard-section-header">
+                        <div class="dashboard-section-title">環境・ライティング設定</div>
+                        <button type="button" id="resetEnvSettingsBtn" class="btn btn-small btn-reset" title="環境設定を初期値に戻す">
+                            リセット
+                        </button>
                     </div>
-
-                    <!-- ライト & 影パラメータ -->
-                    <div class="setting-block">
-                        <div class="setting-block-title">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="5"></circle>
-                                <line x1="12" y1="1" x2="12" y2="3"></line>
-                                <line x1="12" y1="21" x2="12" y2="23"></line>
-                                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                                <line x1="1" y1="12" x2="3" y2="12"></line>
-                                <line x1="21" y1="12" x2="23" y2="12"></line>
-                                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                            </svg>
-                            <span>光と影の設定</span>
-                        </div>
-                        <div class="form-group">
-                            <label for="lightAngle" class="form-label">光の向き</label>
-                            <div class="range-wrapper">
-                                <input type="range" id="lightAngle" class="range-input" min="0" max="360" value="45">
-                                <span id="lightAngleVal" class="range-val">45°</span>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="lightStrength" class="form-label">光の強さ</label>
-                            <div class="range-wrapper">
-                                <input type="range" id="lightStrength" class="range-input" min="0" max="100"
-                                    value="100">
-                                <span id="lightStrengthVal" class="range-val">100%</span>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="shadowIntensity" class="form-label">影の濃さ</label>
-                            <div class="range-wrapper">
-                                <input type="range" id="shadowIntensity" class="range-input" min="0" max="100"
-                                    value="15">
-                                <span id="shadowIntensityVal" class="range-val">15%</span>
-                            </div>
-                        </div>
+                    <div class="dashboard-grid">
+                        <!-- 風の向き -->
+                        <button type="button" class="dashboard-tile" data-setting="windAngle">
+                            <div class="tile-icon" id="tileIconWindAngle"></div>
+                            <div class="tile-label">風の向き</div>
+                            <div class="tile-value" id="tileValWindAngle">90°</div>
+                        </button>
+                        <!-- 風の強さ -->
+                        <button type="button" class="dashboard-tile" data-setting="windStrength">
+                            <div class="tile-icon" id="tileIconWindStrength"></div>
+                            <div class="tile-label">風の強さ</div>
+                            <div class="tile-value" id="tileValWindStrength">30%</div>
+                        </button>
+                        <!-- 光の向き -->
+                        <button type="button" class="dashboard-tile" data-setting="lightAngle">
+                            <div class="tile-icon" id="tileIconLightAngle"></div>
+                            <div class="tile-label">光の向き</div>
+                            <div class="tile-value" id="tileValLightAngle">315°</div>
+                        </button>
+                        <!-- 光の強さ -->
+                        <button type="button" class="dashboard-tile" data-setting="lightStrength">
+                            <div class="tile-icon" id="tileIconLightStrength"></div>
+                            <div class="tile-label">光の強さ</div>
+                            <div class="tile-value" id="tileValLightStrength">100%</div>
+                        </button>
+                        <!-- 光の色 (寒色〜暖色) -->
+                        <button type="button" class="dashboard-tile" data-setting="lightColor">
+                            <div class="tile-icon" id="tileIconLightColor"></div>
+                            <div class="tile-label">光の色</div>
+                            <div class="tile-value" id="tileValLightColor">自然光</div>
+                        </button>
+                        <!-- 影の濃さ -->
+                        <button type="button" class="dashboard-tile" data-setting="shadowIntensity">
+                            <div class="tile-icon" id="tileIconShadowIntensity"></div>
+                            <div class="tile-label">影の濃さ</div>
+                            <div class="tile-value" id="tileValShadowIntensity">15%</div>
+                        </button>
                     </div>
                 </div>
 
@@ -354,14 +353,136 @@
 
                 <div class="panel-home-action">
                     <button type="button" id="backToHomeBtn" class="btn btn-secondary btn-back-home">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                        </svg>
                         <span>トップページに戻る</span>
                     </button>
                 </div>
+            </div>
+        </div>
+
+        <!-- ─── 個別設定変更パネル (下部フローティング調整バー) ─── -->
+        <div id="singleSettingPanel" class="single-setting-panel" style="display: none;">
+            <div class="setting-panel-header">
+                <span id="singleSettingTitle" class="setting-panel-title">設定の調整</span>
+            </div>
+
+            <!-- 設定値に応じたアイコンと設定値表示 -->
+            <div class="setting-preview-box">
+                <div id="singleSettingIcon" class="setting-preview-icon"></div>
+                <div id="singleSettingValue" class="setting-preview-value">0</div>
+            </div>
+
+            <!-- コントロール部 (数値・角度スライダー) -->
+            <div id="singleSettingControlsNumeric" class="single-setting-controls-numeric">
+                <button type="button" id="adjustMinusBtn" class="btn-adjust-step" aria-label="減少または時計回り">
+                    <span id="adjustMinusIcon">-</span>
+                </button>
+                <div class="range-wrapper adjust-slider-wrapper">
+                    <input type="range" id="singleSettingSlider" class="range-input adjust-range" min="0" max="100"
+                        value="50">
+                </div>
+                <button type="button" id="adjustPlusBtn" class="btn-adjust-step" aria-label="増加または反時計回り">
+                    <span id="adjustPlusIcon">+</span>
+                </button>
+            </div>
+
+            <!-- 光源色 (色温度: 寒色〜暖色) コントロール -->
+            <div id="singleSettingControlsColorTemp" class="single-setting-controls-colortemp" style="display: none;">
+                <div class="color-temp-preset-row">
+                    <button type="button" class="btn-temp-chip" data-temp="0" style="background: #ff944d;"
+                        title="暖色 (夕暮れ)">暖色</button>
+                    <button type="button" class="btn-temp-chip" data-temp="25" style="background: #ffd1a4;"
+                        title="温白色">温白</button>
+                    <button type="button" class="btn-temp-chip active" data-temp="50" style="background: #ffffff;"
+                        title="自然光 (白色)">自然</button>
+                    <button type="button" class="btn-temp-chip" data-temp="75" style="background: #badfff;"
+                        title="昼光色">昼光</button>
+                    <button type="button" class="btn-temp-chip" data-temp="100" style="background: #80bfff;"
+                        title="寒色 (青空)">寒色</button>
+                </div>
+                <div class="color-temp-slider-row">
+                    <span class="temp-indicator-label warm">暖色</span>
+                    <div class="range-wrapper temp-slider-wrapper">
+                        <input type="range" id="singleSettingColorTempSlider" class="range-input temp-range" min="0"
+                            max="100" value="50">
+                    </div>
+                    <span class="temp-indicator-label cool">寒色</span>
+                </div>
+            </div>
+
+            <!-- カラー変更用コントロール (ポールの色・スタンドの色) -->
+            <div id="singleSettingControlsColor" class="single-setting-controls-color" style="display: none;">
+                <div class="color-palette-preset">
+                    <button type="button" class="btn-color-chip" data-color="#FFFFFF" style="background: #FFFFFF;"
+                        title="白"></button>
+                    <button type="button" class="btn-color-chip" data-color="#C0C0C0" style="background: #C0C0C0;"
+                        title="シルバー"></button>
+                    <button type="button" class="btn-color-chip" data-color="#333333" style="background: #333333;"
+                        title="ダークグレー"></button>
+                    <button type="button" class="btn-color-chip" data-color="#2E7D32" style="background: #2E7D32;"
+                        title="グリーン"></button>
+                    <button type="button" class="btn-color-chip" data-color="#1976D2" style="background: #1976D2;"
+                        title="ブルー"></button>
+                    <button type="button" class="btn-color-chip" data-color="#D32F2F" style="background: #D32F2F;"
+                        title="レッド"></button>
+                </div>
+                <div class="color-custom-row">
+                    <label for="singleSettingColorPicker" class="color-picker-label">カスタム色:</label>
+                    <input type="color" id="singleSettingColorPicker" class="color-input" value="#333333">
+                </div>
+            </div>
+
+            <!-- 旗の切り替えコントロール (サムネイル一覧) -->
+            <div id="singleSettingControlsSwitchFlag" class="single-setting-controls-switch-flag" style="display: none;">
+                <div id="flagSwitchList" class="flag-switch-list"></div>
+            </div>
+
+            <!-- 通常設定の確定・キャンセルボタン -->
+            <div id="singleSettingActionsDefault" class="single-setting-actions">
+                <button type="button" id="settingCancelBtn" class="btn btn-secondary btn-action-cancel">
+                    キャンセル
+                </button>
+                <button type="button" id="settingConfirmBtn" class="btn btn-primary btn-action-confirm">
+                    確定
+                </button>
+            </div>
+
+            <!-- 旗切り替え用アクションボタン (2段構成) -->
+            <div id="singleSettingActionsSwitch" class="switch-flag-actions" style="display: none;">
+                <div class="switch-actions-row">
+                    <button type="button" id="switchCancelBtn" class="btn btn-secondary">
+                        キャンセル
+                    </button>
+                    <button type="button" id="switchSelectBtn" class="btn btn-primary">
+                        選択
+                    </button>
+                </div>
+                <div class="switch-actions-row">
+                    <button type="button" id="switchApplyAndSelectBtn" class="btn btn-apply-settings">
+                        同じ設定を適用＆選択
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         トップページへ戻る 確認モーダル
+         ============================================================ -->
+    <div id="confirmLeaveModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content modal-content-confirm">
+            <h3 class="modal-title" style="color: var(--danger-color);">トップページに戻りますか？</h3>
+            <p class="modal-desc" style="font-size: 0.82rem; margin: 10px 0 16px 0; line-height: 1.6;">
+                一時保存された写真が <strong id="confirmLeavePhotoCount" style="color: var(--danger-color);">0</strong> 枚あります。<br>
+                トップページに戻ると、撮影した写真は<strong>すべて破棄</strong>されます。<br>
+                （※写真を残したい場合は「写真一覧」からダウンロードしてください）
+            </p>
+            <div class="modal-actions">
+                <button type="button" id="confirmLeaveCancelBtn" class="btn btn-secondary">
+                    キャンセル
+                </button>
+                <button type="button" id="confirmLeaveOkBtn" class="btn btn-danger">
+                    破棄して戻る
+                </button>
             </div>
         </div>
     </div>
@@ -400,8 +521,8 @@
 
                 <div class="modal-actions">
                     <button type="button" id="downloadModalBtn" class="btn btn-primary">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                             <polyline points="7 10 12 15 17 10"></polyline>
                             <line x1="12" y1="15" x2="12" y2="3"></line>
@@ -432,7 +553,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <!-- アプリケーション (ES Module) -->
-    <script type="module" src="js/app.js?v=0.50"></script>
+    <script type="module" src="js/app.js?v=0.90"></script>
 
 </body>
 

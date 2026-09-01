@@ -3,7 +3,7 @@
  * のぼり旗3Dオブジェクト（旗メッシュ + ポール + スタンド）
  */
 
-import { createWindMaterial } from './wind-shader.js?v=0.50';
+import { createWindMaterial } from './wind-shader.js?v=0.90';
 
 /** のぼり旗の基準定数 */
 const FLAG_BASE_HEIGHT = 1.8; // 基準の高さ 180cm
@@ -31,6 +31,7 @@ export class BannerFlag {
     this._opacity = 0.90; // デフォルト90%
     this._flagWidth = 0.6;
     this._flagHeight = 1.8;
+    this.thumbnailUrl = '';
 
     /** @type {THREE.ShaderMaterial|null} */
     this._flagMaterial = null;
@@ -97,6 +98,20 @@ export class BannerFlag {
           this._flagWidth = flagWidth;
           this._flagHeight = flagHeight;
 
+          // サムネイル用データURLを生成・保持
+          try {
+            const thumbCanvas = document.createElement('canvas');
+            const thumbW = 90;
+            const thumbH = Math.round(thumbW / aspect);
+            thumbCanvas.width = thumbW;
+            thumbCanvas.height = Math.min(thumbH, 200);
+            const ctx = thumbCanvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, thumbCanvas.width, thumbCanvas.height);
+            this.thumbnailUrl = thumbCanvas.toDataURL('image/jpeg', 0.85);
+          } catch (e) {
+            this.thumbnailUrl = imageUrl;
+          }
+
           // ポールを旗サイズに合わせて再構築
           this._buildPole(flagWidth, flagHeight);
           // 旗メッシュを生成
@@ -144,6 +159,17 @@ export class BannerFlag {
     return '#' + this._standMaterial.color.getHexString();
   }
 
+  // ────────── 向き（Y軸回転） ──────────
+
+  /** @param {number} rad - ラジアン (0〜2π) */
+  setRotationY(rad) {
+    this.group.rotation.y = rad;
+  }
+
+  get rotationY() {
+    return this.group.rotation.y;
+  }
+
   // ────────── 風パラメータ更新 ──────────
 
   /**
@@ -160,14 +186,18 @@ export class BannerFlag {
   }
 
   /**
-   * ライティング方向と強度を設定
+   * ライティング方向、強度、光色を設定
    * @param {THREE.Vector3} dir
    * @param {number} intensity
+   * @param {THREE.Color} [color]
    */
-  updateLighting(dir, intensity) {
+  updateLighting(dir, intensity, color) {
     if (this._flagMaterial) {
       this._flagMaterial.uniforms.uLightDir.value.copy(dir);
       this._flagMaterial.uniforms.uLightIntensity.value = intensity;
+      if (color && this._flagMaterial.uniforms.uLightColor) {
+        this._flagMaterial.uniforms.uLightColor.value.copy(color);
+      }
     }
   }
 

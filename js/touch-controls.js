@@ -145,6 +145,15 @@ export class TouchControls {
       this._selected.position.addScaledVector(forward, -dy * factor);
 
       this._lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+
+      this._canvas.dispatchEvent(new CustomEvent('flag-transform', {
+        detail: {
+          group: this._selected,
+          index: this._selected.userData.flagIndex,
+          position: this._selected.position,
+          scale: this._selected.scale.x,
+        },
+      }));
     }
 
     // 2本指ピンチ: 拡大縮小
@@ -160,6 +169,15 @@ export class TouchControls {
       );
       this._selected.scale.setScalar(newScale);
       this._lastPinchDist = dist;
+
+      this._canvas.dispatchEvent(new CustomEvent('flag-transform', {
+        detail: {
+          group: this._selected,
+          index: this._selected.userData.flagIndex,
+          position: this._selected.position,
+          scale: this._selected.scale.x,
+        },
+      }));
     }
   }
 
@@ -167,6 +185,7 @@ export class TouchControls {
     if (e.touches.length === 0) {
       this._isDragging = false;
       this._isPinching = false;
+      this._canvas.dispatchEvent(new CustomEvent('flag-transform-end'));
     } else if (e.touches.length === 1) {
       this._isPinching = false;
       if (this._selected) {
