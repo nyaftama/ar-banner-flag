@@ -3,7 +3,7 @@
  * Three.js シーン構築、カメラ・ジャイロ連動、ライティング、レンダリングループ
  */
 
-import { BannerFlag } from './banner-flag.js';
+import { BannerFlag } from './banner-flag.js?v=0.50';
 
 export class ARScene {
   /**
@@ -32,8 +32,8 @@ export class ARScene {
     // ── ライトパラメータ ──
     this._lightAzimuth = Math.PI / 4;  // 水平角
     this._lightElevation = Math.PI / 4; // 仰角
-    this._lightIntensity = 1.0;
-    this._shadowOpacity = 0.4;
+    this._lightIntensity = 2.0;
+    this._shadowOpacity = 0.15;
 
     this._initScene();
     this._initCamera();

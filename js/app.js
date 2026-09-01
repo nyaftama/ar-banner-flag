@@ -1,22 +1,26 @@
 /**
  * app.js
- * アプリケーション エントリポイント
- * カメラ起動 → ジャイロ許可 → シーン構築 → UI バインディング → レンダリングループ
+ * AR のぼり旗カメラ - アプリケーション エントリポイント
  */
 
-import { ARScene } from './ar-scene.js';
-import { BannerFlag } from './banner-flag.js';
-import { TouchControls } from './touch-controls.js';
-import { captureComposite, downloadBlob } from './capture.js';
+import { ARScene } from './ar-scene.js?v=0.50';
+import { BannerFlag } from './banner-flag.js?v=0.50';
+import { TouchControls } from './touch-controls.js?v=0.50';
+import { captureComposite, downloadBlob } from './capture.js?v=0.50';
 
 // ────────── 定数 ──────────
 const MAX_FLAGS = 3;
+const MAX_PHOTOS = 10;
 
-// ────────── 状態 ──────────
+// ────────── アプリ状態 ──────────
 let arScene = null;
 let touchControls = null;
 let animationId = null;
 let selectedFlagIndex = -1;
+
+/** @type {Array<{ blob: Blob, url: string, timestamp: number }>} */
+const capturedPhotos = [];
+let currentPhotoIndex = 0;
 
 // ────────── DOM 参照 ──────────
 const $ = (id) => document.getElementById(id);
@@ -27,6 +31,8 @@ const arView = $('arView');
 const cameraVideo = $('cameraVideo');
 const arCanvas = $('arCanvas');
 
+const galleryBtn = $('galleryBtn');
+const galleryCountBadge = $('galleryCountBadge');
 const addFlagBtn = $('addFlagBtn');
 const flagFileInput = $('flagFileInput');
 const flagCountLabel = $('flagCount');
@@ -38,6 +44,8 @@ const controlPanel = $('controlPanel');
 
 const poleColorInput = $('poleColor');
 const standColorInput = $('standColor');
+const flagOpacitySlider = $('flagOpacity');
+const flagOpacityVal = $('flagOpacityVal');
 const selectedFlagControls = $('selectedFlagControls');
 const deleteFlagBtn = $('deleteFlagBtn');
 
@@ -52,6 +60,17 @@ const lightStrengthVal = $('lightStrengthVal');
 const shadowSlider = $('shadowIntensity');
 const shadowVal = $('shadowIntensityVal');
 
+// モーダル関連
+const shareModal = $('shareModal');
+const galleryModalTitle = $('galleryModalTitle');
+const galleryEmptyState = $('galleryEmptyState');
+const galleryContentArea = $('galleryContentArea');
+const galleryThumbnails = $('galleryThumbnails');
+const shareImagePreview = $('shareImagePreview');
+const downloadModalBtn = $('downloadModalBtn');
+const deletePhotoBtn = $('deletePhotoBtn');
+const closeModalBtn = $('closeModalBtn');
+
 const toast = $('toast');
 
 // ────────── ユーティリティ ──────────
@@ -64,7 +83,7 @@ function showToast(msg, duration = 2500) {
 
 function updateFlagCount() {
   const count = arScene ? arScene.flags.length : 0;
-  flagCountLabel.textContent = `${count} / ${MAX_FLAGS}`;
+  flagCountLabel.textContent = `${count}/${MAX_FLAGS}`;
   addFlagBtn.disabled = count >= MAX_FLAGS;
 }
 
@@ -74,9 +93,64 @@ function updateSelectedFlagUI() {
     selectedFlagControls.classList.add('visible');
     poleColorInput.value = flag.poleColor;
     standColorInput.value = flag.standColor;
+    const opacityPct = Math.round(flag.opacity * 100);
+    flagOpacitySlider.value = opacityPct;
+    flagOpacityVal.textContent = `${opacityPct}%`;
   } else {
     selectedFlagControls.classList.remove('visible');
   }
+}
+
+// ────────── フォトライブラリ UI 管理 ──────────
+
+function updateGalleryBadge() {
+  const count = capturedPhotos.length;
+  galleryCountBadge.textContent = count;
+  galleryCountBadge.style.display = count > 0 ? 'inline-flex' : 'none';
+}
+
+function renderGalleryModal() {
+  const count = capturedPhotos.length;
+  galleryModalTitle.textContent = `撮影した写真 (${count} / ${MAX_PHOTOS}枚)`;
+
+  if (count === 0) {
+    galleryEmptyState.style.display = 'flex';
+    galleryContentArea.style.display = 'none';
+    return;
+  }
+
+  galleryEmptyState.style.display = 'none';
+  galleryContentArea.style.display = 'flex';
+
+  if (currentPhotoIndex >= count) currentPhotoIndex = count - 1;
+  if (currentPhotoIndex < 0) currentPhotoIndex = 0;
+
+  // サムネイル一覧の生成
+  galleryThumbnails.innerHTML = '';
+  capturedPhotos.forEach((photo, idx) => {
+    const img = document.createElement('img');
+    img.src = photo.url;
+    img.className = 'gallery-thumb' + (idx === currentPhotoIndex ? ' active' : '');
+    img.alt = `写真 ${idx + 1}`;
+    img.addEventListener('click', () => {
+      currentPhotoIndex = idx;
+      renderGalleryModal();
+    });
+    galleryThumbnails.appendChild(img);
+  });
+
+  // 選択中写真のメインプレビュー
+  shareImagePreview.src = capturedPhotos[currentPhotoIndex].url;
+}
+
+function openGalleryModal() {
+  currentPhotoIndex = 0; // 最新の写真を選択
+  renderGalleryModal();
+  shareModal.style.display = 'flex';
+}
+
+function closeGalleryModal() {
+  shareModal.style.display = 'none';
 }
 
 // ────────── カメラ映像の取得 ──────────
@@ -106,11 +180,8 @@ async function startCamera() {
 function requestGyroPermissionSync() {
   if (typeof DeviceOrientationEvent !== 'undefined' &&
       typeof DeviceOrientationEvent.requestPermission === 'function') {
-    // iOS 13+ Safari: ユーザージェスチャの同期コンテキスト内で呼び出す必要がある
     return DeviceOrientationEvent.requestPermission().then(
-      (permissionState) => {
-        return permissionState === 'granted';
-      },
+      (permissionState) => permissionState === 'granted',
       (err) => {
         console.warn('ジャイロ許可エラー:', err);
         return false;
@@ -126,7 +197,6 @@ function initScene() {
   arScene = new ARScene(arCanvas, cameraVideo);
   touchControls = new TouchControls(arCanvas, arScene.camera, arScene.scene);
 
-  // オブジェクト選択イベント
   arCanvas.addEventListener('flag-selected', (e) => {
     selectedFlagIndex = e.detail.index;
     updateSelectedFlagUI();
@@ -141,19 +211,12 @@ function initScene() {
 
 function animate() {
   animationId = requestAnimationFrame(animate);
-
-  // タッチ操作中はジャイロ回転を抑制（視覚的な安定性のため）
-  // → ARScene 側で orientationEnabled を参照しているが、
-  //   ここでは touchControls.isInteracting を使って一時的に停止はしない
-  //   （操作中も背景は動くのが自然）
-
   arScene.render();
 }
 
 // ────────── アプリ起動 ──────────
 
 async function startApp() {
-  // 1. iOS SafariのUser Gesture有効期限切れを防ぐため、最優先でジャイロ許可リクエストを開始
   const gyroPromise = requestGyroPermissionSync();
 
   startBtn.disabled = true;
@@ -166,7 +229,6 @@ async function startApp() {
     <span>起動中...</span>
   `;
 
-  // 2. カメラ映像の取得とジャイロ結果の待機を並行処理
   const [camOk, gyroOk] = await Promise.all([
     startCamera(),
     gyroPromise
@@ -193,10 +255,10 @@ async function startApp() {
 // ────────── UI イベントバインディング ──────────
 
 function bindUIEvents() {
-  // ── 開始ボタン ──
+  // 開始ボタン
   startBtn.addEventListener('click', startApp);
 
-  // ── パネル開閉 ──
+  // パネル開閉
   let panelOpen = false;
   panelHandle.addEventListener('click', () => {
     panelOpen = !panelOpen;
@@ -204,10 +266,10 @@ function bindUIEvents() {
     controlPanel.classList.toggle('expanded', panelOpen);
   });
 
-  // ── 旗画像追加 ──
+  // 旗画像追加
   addFlagBtn.addEventListener('click', () => {
     if (arScene && arScene.flags.length >= MAX_FLAGS) {
-      showToast('のぼり旗は最大3セットまで配置できます。');
+      showToast(`のぼり旗は最大${MAX_FLAGS}セットまで配置できます。`);
       return;
     }
     flagFileInput.click();
@@ -225,7 +287,7 @@ function bindUIEvents() {
 
       arScene.addFlag(flag);
 
-      // タッチ操作対象に旗グループの全子メッシュを登録
+      // タッチ操作対象にメッシュを登録
       flag.group.traverse((child) => {
         if (child.isMesh) touchControls.addTarget(child);
       });
@@ -241,11 +303,10 @@ function bindUIEvents() {
       showToast('画像の読み込みに失敗しました。');
     }
 
-    // input をリセット（同じファイルを再選択可能にする）
     flagFileInput.value = '';
   });
 
-  // ── 旗削除 ──
+  // 旗削除
   deleteFlagBtn.addEventListener('click', () => {
     if (selectedFlagIndex < 0 || !arScene) return;
     const flag = arScene.flags[selectedFlagIndex];
@@ -261,7 +322,7 @@ function bindUIEvents() {
     }
   });
 
-  // ── ポール / スタンド色変更 ──
+  // ポール / スタンド色変更
   poleColorInput.addEventListener('input', () => {
     if (selectedFlagIndex >= 0 && arScene?.flags[selectedFlagIndex]) {
       arScene.flags[selectedFlagIndex].setPoleColor(poleColorInput.value);
@@ -273,7 +334,16 @@ function bindUIEvents() {
     }
   });
 
-  // ── 風パラメータ ──
+  // 旗の不透明度変更
+  flagOpacitySlider.addEventListener('input', () => {
+    const pct = parseInt(flagOpacitySlider.value, 10);
+    flagOpacityVal.textContent = `${pct}%`;
+    if (selectedFlagIndex >= 0 && arScene?.flags[selectedFlagIndex]) {
+      arScene.flags[selectedFlagIndex].setOpacity(pct / 100);
+    }
+  });
+
+  // 風パラメータ
   windAngleSlider.addEventListener('input', () => {
     const deg = parseInt(windAngleSlider.value, 10);
     windAngleVal.textContent = `${deg}°`;
@@ -285,7 +355,7 @@ function bindUIEvents() {
     arScene?.setWindStrength(pct / 100);
   });
 
-  // ── ライトパラメータ ──
+  // ライトパラメータ
   lightAngleSlider.addEventListener('input', () => {
     const deg = parseInt(lightAngleSlider.value, 10);
     lightAngleVal.textContent = `${deg}°`;
@@ -294,17 +364,17 @@ function bindUIEvents() {
   lightStrengthSlider.addEventListener('input', () => {
     const pct = parseInt(lightStrengthSlider.value, 10);
     lightStrengthVal.textContent = `${pct}%`;
-    arScene?.setLightIntensity(pct / 100);
+    arScene?.setLightIntensity((pct / 100) * 2.0);
   });
 
-  // ── 影パラメータ ──
+  // 影パラメータ
   shadowSlider.addEventListener('input', () => {
     const pct = parseInt(shadowSlider.value, 10);
     shadowVal.textContent = `${pct}%`;
     arScene?.setShadowOpacity(pct / 100);
   });
 
-  // ── シャッター ──
+  // シャッター（写真一時保存）
   shutterBtn.addEventListener('click', async () => {
     if (!arScene) return;
 
@@ -313,18 +383,91 @@ function bindUIEvents() {
 
     try {
       const blob = await captureComposite(cameraVideo, arScene.renderer);
-      downloadBlob(blob);
-      showToast('画像を保存しました！');
+      const url = URL.createObjectURL(blob);
+
+      // 最新写真を先頭に追加
+      capturedPhotos.unshift({
+        blob,
+        url,
+        timestamp: Date.now(),
+      });
+
+      // 最大枚数を超えた古い写真を破棄
+      if (capturedPhotos.length > MAX_PHOTOS) {
+        const removed = capturedPhotos.pop();
+        if (removed) URL.revokeObjectURL(removed.url);
+      }
+
+      updateGalleryBadge();
+      showToast(`写真を保存しました (${capturedPhotos.length}/${MAX_PHOTOS}枚)`);
     } catch (err) {
       console.error('キャプチャエラー:', err);
-      showToast('画像の保存に失敗しました。');
+      showToast('写真の撮影に失敗しました。');
     }
 
     setTimeout(() => {
       shutterBtn.disabled = false;
       shutterBtn.classList.remove('capturing');
-    }, 800);
+    }, 600);
   });
+
+  // フォトライブラリ モーダル操作
+  galleryBtn.addEventListener('click', openGalleryModal);
+  closeModalBtn.addEventListener('click', closeGalleryModal);
+  shareModal.addEventListener('click', (e) => {
+    if (e.target === shareModal) closeGalleryModal();
+  });
+
+  // モーダル内ダウンロード
+  downloadModalBtn.addEventListener('click', () => {
+    if (capturedPhotos.length === 0 || !capturedPhotos[currentPhotoIndex]) return;
+    const photo = capturedPhotos[currentPhotoIndex];
+    downloadBlob(photo.blob, `ar-banner-flag-${photo.timestamp}.png`);
+    showToast('画像を端末にダウンロードしました');
+  });
+
+  // モーダル内写真削除
+  deletePhotoBtn.addEventListener('click', () => {
+    if (capturedPhotos.length === 0 || !capturedPhotos[currentPhotoIndex]) return;
+    const removed = capturedPhotos.splice(currentPhotoIndex, 1)[0];
+    if (removed) URL.revokeObjectURL(removed.url);
+    updateGalleryBadge();
+    renderGalleryModal();
+    showToast('写真を削除しました');
+  });
+
+  // トップページに戻る
+  const backToHomeBtn = $('backToHomeBtn');
+  if (backToHomeBtn) {
+    backToHomeBtn.addEventListener('click', () => {
+      if (cameraVideo.srcObject) {
+        cameraVideo.srcObject.getTracks().forEach((track) => track.stop());
+        cameraVideo.srcObject = null;
+      }
+
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+      }
+
+      panelOpen = false;
+      panelExpanded.style.display = 'none';
+      controlPanel.classList.remove('expanded');
+
+      arView.style.display = 'none';
+      startScreen.style.display = 'block';
+
+      startBtn.disabled = false;
+      startBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+            <circle cx="12" cy="13" r="4"></circle>
+        </svg>
+        <span>ARカメラを起動する</span>
+      `;
+    });
+  }
 }
 
 // ────────── 初期化 ──────────
@@ -332,4 +475,5 @@ function bindUIEvents() {
 document.addEventListener('DOMContentLoaded', () => {
   bindUIEvents();
   updateFlagCount();
+  updateGalleryBadge();
 });

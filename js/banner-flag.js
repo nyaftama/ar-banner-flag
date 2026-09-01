@@ -1,20 +1,16 @@
 /**
  * banner-flag.js
- * のぼり旗3Dオブジェクト生成
- * 「旗メッシュ + ポール + スタンド」を1セットとして管理する
+ * のぼり旗3Dオブジェクト（旗メッシュ + ポール + スタンド）
  */
 
-import { createWindMaterial } from './wind-shader.js';
+import { createWindMaterial } from './wind-shader.js?v=0.50';
 
-/** のぼり旗の定数 */
-const FLAG_WIDTH = 0.6;   // 60cm
-const FLAG_HEIGHT = 1.8;  // 180cm  (1:3 比率)
+/** のぼり旗の基準定数 */
+const FLAG_BASE_HEIGHT = 1.8; // 基準の高さ 180cm
 const FLAG_SEGMENTS_W = 20;
 const FLAG_SEGMENTS_H = 30;
 
 const POLE_RADIUS = 0.015;
-const POLE_HEIGHT = 2.2;  // 旗より少し上に突き出す
-const CROSSBAR_LENGTH = FLAG_WIDTH + 0.04;
 const CROSSBAR_RADIUS = 0.01;
 
 const STAND_BASE_RADIUS = 0.18;
@@ -32,10 +28,17 @@ export class BannerFlag {
     this.group.userData.isBannerFlag = true;
     this.group.userData.flagIndex = index;
 
+    this._opacity = 0.90; // デフォルト90%
+    this._flagWidth = 0.6;
+    this._flagHeight = 1.8;
+
     /** @type {THREE.ShaderMaterial|null} */
     this._flagMaterial = null;
     /** @type {THREE.Mesh|null} */
     this._flagMesh = null;
+    /** @type {THREE.Group|null} */
+    this._poleGroup = null;
+
     /** @type {THREE.MeshStandardMaterial} */
     this._poleMaterial = new THREE.MeshStandardMaterial({
       color: 0xC0C0C0,
@@ -49,12 +52,12 @@ export class BannerFlag {
       roughness: 0.5,
     });
 
-    this._buildPole();
+    this._buildPole(this._flagWidth, this._flagHeight);
     this._buildStand();
   }
 
   /**
-   * 旗画像テクスチャを読み込み、旗メッシュを生成してグループに追加する
+   * 旗画像テクスチャを読み込み、アスペクト比を維持して旗メッシュとポールを生成
    * @param {string} imageUrl - data URL または object URL
    * @returns {Promise<void>}
    */
@@ -69,13 +72,56 @@ export class BannerFlag {
           } else if (THREE.sRGBEncoding) {
             texture.encoding = THREE.sRGBEncoding;
           }
-          this._buildFlagMesh(texture);
+
+          // ── 画像のアスペクト比（width / height）を取得してサイズ計算 ──
+          const img = texture.image;
+          const imgW = img?.naturalWidth || img?.width || 600;
+          const imgH = img?.naturalHeight || img?.height || 1800;
+          const aspect = imgW / imgH;
+
+          // 基本は高さ1.8m基準でアスペクト比を保つ
+          let flagHeight = FLAG_BASE_HEIGHT;
+          let flagWidth = flagHeight * aspect;
+
+          // 横長すぎる場合は幅を最大1.2mにクランプ
+          if (flagWidth > 1.2) {
+            flagWidth = 1.2;
+            flagHeight = flagWidth / aspect;
+          }
+          // 細すぎる場合の最小幅制限
+          if (flagWidth < 0.25) {
+            flagWidth = 0.25;
+            flagHeight = flagWidth / aspect;
+          }
+
+          this._flagWidth = flagWidth;
+          this._flagHeight = flagHeight;
+
+          // ポールを旗サイズに合わせて再構築
+          this._buildPole(flagWidth, flagHeight);
+          // 旗メッシュを生成
+          this._buildFlagMesh(texture, flagWidth, flagHeight);
+
           resolve();
         },
         undefined,
         (err) => reject(err)
       );
     });
+  }
+
+  // ────────── 不透明度 ──────────
+
+  /** @param {number} val - 0〜1 (例: 0.95) */
+  setOpacity(val) {
+    this._opacity = val;
+    if (this._flagMaterial) {
+      this._flagMaterial.uniforms.uOpacity.value = val;
+    }
+  }
+
+  get opacity() {
+    return this._opacity;
   }
 
   // ────────── ポール / スタンドの色変更 ──────────
@@ -128,8 +174,7 @@ export class BannerFlag {
   // ────────── 3Dオブジェクト構築 (Private) ──────────
 
   /** 旗メッシュ (ShaderMaterial) */
-  _buildFlagMesh(texture) {
-    // 既存の旗メッシュがあれば除去
+  _buildFlagMesh(texture, width, height) {
     if (this._flagMesh) {
       this.group.remove(this._flagMesh);
       this._flagMesh.geometry.dispose();
@@ -137,21 +182,20 @@ export class BannerFlag {
     }
 
     const geo = new THREE.PlaneGeometry(
-      FLAG_WIDTH, FLAG_HEIGHT,
+      width, height,
       FLAG_SEGMENTS_W, FLAG_SEGMENTS_H
     );
 
-    this._flagMaterial = createWindMaterial(texture);
+    this._flagMaterial = createWindMaterial(texture, this._opacity);
     this._flagMesh = new THREE.Mesh(geo, this._flagMaterial);
     this._flagMesh.castShadow = true;
 
     // 旗の位置: ポール上端付近から垂れ下がる形
-    // PlaneGeometry の中心が (0,0,0) なので、
-    // 上辺がポール上端の高さに来るように配置
-    const flagTopY = POLE_HEIGHT - 0.05;
+    const poleHeight = height + 0.35;
+    const flagTopY = poleHeight - 0.05;
     this._flagMesh.position.set(
-      FLAG_WIDTH / 2 + POLE_RADIUS, // ポールの右側に旗が展開
-      flagTopY - FLAG_HEIGHT / 2,   // 上辺がポール上端付近
+      width / 2 + POLE_RADIUS, // ポールの右側に旗が展開
+      flagTopY - height / 2,   // 上辺がポール上端付近
       0
     );
 
@@ -159,35 +203,49 @@ export class BannerFlag {
   }
 
   /** ポール (垂直の柱 + 上部の横棒) */
-  _buildPole() {
+  _buildPole(width, height) {
+    if (this._poleGroup) {
+      this.group.remove(this._poleGroup);
+      this._poleGroup.traverse((c) => {
+        if (c.isMesh) c.geometry.dispose();
+      });
+    }
+
+    this._poleGroup = new THREE.Group();
+
+    const poleHeight = height + 0.35;
+    const crossbarLength = width + 0.04;
+
     // 垂直ポール
     const poleGeo = new THREE.CylinderGeometry(
-      POLE_RADIUS, POLE_RADIUS, POLE_HEIGHT, 12
+      POLE_RADIUS, POLE_RADIUS, poleHeight, 12
     );
     const poleMesh = new THREE.Mesh(poleGeo, this._poleMaterial);
-    poleMesh.position.set(0, POLE_HEIGHT / 2, 0);
+    poleMesh.position.set(0, poleHeight / 2, 0);
     poleMesh.castShadow = true;
-    this.group.add(poleMesh);
+    this._poleGroup.add(poleMesh);
 
     // 横棒 (クロスバー)
     const crossbarGeo = new THREE.CylinderGeometry(
-      CROSSBAR_RADIUS, CROSSBAR_RADIUS, CROSSBAR_LENGTH, 8
+      CROSSBAR_RADIUS, CROSSBAR_RADIUS, crossbarLength, 8
     );
     const crossbarMesh = new THREE.Mesh(crossbarGeo, this._poleMaterial);
     crossbarMesh.rotation.z = Math.PI / 2; // 横向きに回転
     crossbarMesh.position.set(
-      CROSSBAR_LENGTH / 2,
-      POLE_HEIGHT - 0.02,
+      crossbarLength / 2,
+      poleHeight - 0.02,
       0
     );
     crossbarMesh.castShadow = true;
-    this.group.add(crossbarMesh);
+    this._poleGroup.add(crossbarMesh);
 
     // ポール上端のキャップ（球）
-    const capGeo = new THREE.SphereGeometry(POLE_RADIUS * 1.5, 8, 8);
+    const capGeo = new THREE.SphereGeometry(POLE_RADIUS * 1.4, 8, 8);
     const capMesh = new THREE.Mesh(capGeo, this._poleMaterial);
-    capMesh.position.set(0, POLE_HEIGHT, 0);
-    this.group.add(capMesh);
+    capMesh.position.set(0, poleHeight, 0);
+    this._poleGroup.add(capMesh);
+
+    this.group.add(this._poleGroup);
   }
 
   /** スタンド (台座) */

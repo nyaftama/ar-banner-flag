@@ -9,33 +9,31 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
 
-    <title>AR のぼり旗メーカー | 疑似WebAR のぼり旗配置ツール</title>
-    <meta name="description" content="WebXR不要！スマートフォンの標準ブラウザで動作するマーカーレス疑似WebARツールです。お手持ちの画像でのぼり旗を作成し、現実空間に配置・撮影できます。">
+    <title>のぼり旗ARカメラ | 疑似WebAR のぼり旗配置ツール</title>
+    <meta name="description" content="スマートフォンの標準ブラウザで動作するマーカーレス疑似WebARカメラです。お手持ちの画像でのぼり旗を作成し、現実空間に配置・撮影できます。">
 
-    <meta property="og:title" content="AR のぼり旗メーカー">
-    <meta property="og:description" content="スマホのカメラ映像とジャイロセンサーで、お手持ちの画像を使ったのぼり旗を空間に配置・撮影できる疑似WebARツールです。">
+    <meta property="og:title" content="のぼり旗ARカメラ">
+    <meta property="og:description" content="スマホのカメラ映像とジャイロセンサーで、お手持ちの画像を使ったのぼり旗を空間に配置・撮影できる疑似WebARカメラです。">
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="AR のぼり旗メーカー">
+    <meta property="og:site_name" content="のぼり旗ARカメラ">
 
     <meta name="twitter:card" content="summary">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=0.50">
 </head>
 
 <body>
 
-    <!-- ============================================================
-         スタート画面 (案内・利用設定)
-         ============================================================ -->
+    <!-- スタート画面 (案内・利用設定) -->
     <div id="startScreen" class="start-screen-container">
         <div class="container">
             <!-- Header Meta -->
             <div class="header-meta">
                 <div class="version-group">
-                    <span class="version-badge">v0.1.0</span>
+                    <span class="version-badge">v0.50</span>
                     <a href="https://github.com/nyaftama/ar-banner-flag#%E6%9B%B4%E6%96%B0%E5%B1%A5%E6%AD%B4"
                         target="_blank" rel="noopener noreferrer" class="changelog-link">更新履歴</a>
                 </div>
@@ -46,7 +44,7 @@
 
             <!-- Title Header -->
             <h1 class="main-title">
-                AR のぼり旗メーカー<br>
+                のぼり旗ARカメラ<br>
                 <span class="sub-title">疑似WebAR のぼり旗配置ツール</span>
             </h1>
             <div class="eng-title">AR BANNER FLAG PLACEMENT TOOL</div>
@@ -55,6 +53,16 @@
                 <a href="https://nyaftama.github.io/uma-ouen-baken/" target="_blank" rel="noopener noreferrer"
                     class="tool-link">
                     <span>推しバ券メーカー</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                </a>
+                <a href="https://nyaftama.github.io/uma-salmon-summoner/" target="_blank" rel="noopener noreferrer"
+                    class="tool-link">
+                    <span>なんでもSHAKEROCKメーカー</span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
@@ -87,14 +95,12 @@
             <!-- Card: About & Start -->
             <div class="card">
                 <div class="card-title">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="2" width="20" height="20" rx="3"></rect>
-                        <path d="M7 2v20"></path>
-                        <line x1="7" y1="5" x2="17" y2="5"></line>
-                        <path d="M17 5c0 0-2 2-5 4s-5 5-5 8"></path>
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+                        stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+                        <line x1="4" y1="22" x2="4" y2="15"></line>
                     </svg>
-                    <span>ツールの概要と使い方</span>
+                    <span>このARカメラについて</span>
                 </div>
 
                 <div class="guide-steps">
@@ -102,8 +108,7 @@
                         <div class="guide-step-num">1</div>
                         <div class="guide-step-text">
                             <strong>カメラとジャイロで疑似AR体験</strong>
-                            <p>WebXR Device APIを使用せず、スマートフォンの背面カメラとジャイロセンサーで空間にのぼり旗を配置します（Android Chrome / iOS Safari
-                                対応）。</p>
+                            <p>スマートフォンの背面カメラとジャイロセンサーで空間にのぼり旗を配置します（Android Chrome / iOS Safari対応）。</p>
                         </div>
                     </div>
                     <div class="guide-step-item">
@@ -124,7 +129,7 @@
                         <div class="guide-step-num">4</div>
                         <div class="guide-step-text">
                             <strong>シャッター機能で画像保存</strong>
-                            <p>カメラ映像と手前の3Dのぼり旗を1枚に合成し、端末にダウンロード保存できます。</p>
+                            <p>カメラ映像と手前の3Dのぼり旗を1枚に合成し、端末にダウンロード・保存できます。</p>
                         </div>
                     </div>
                 </div>
@@ -155,7 +160,6 @@
 
             <!-- Footer -->
             <footer>
-                <p>※当ツールはファンメイドの疑似WebARツールです。</p>
                 <p>&copy; 2026 nyaftama</p>
             </footer>
         </div>
@@ -177,38 +181,55 @@
 
             <!-- ハンドル (タップで展開/収納) -->
             <div id="panelHandle" class="panel-handle" title="設定パネルを開閉">
-                <div class="handle-bar"></div>
-                <span class="handle-text">環境・調整メニュー</span>
                 <svg class="handle-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="18 15 12 9 6 15"></polyline>
                 </svg>
+                <span class="handle-text">環境・調整メニュー</span>
             </div>
 
-            <!-- メインアクションバー (常時表示) -->
+            <!-- メインアクションバー (常時表示: 3列グリッドで中央配置) -->
             <div class="panel-main-actions">
-                <button type="button" id="addFlagBtn" class="btn btn-primary btn-action">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    <span>旗を追加</span>
-                </button>
-
-                <div class="flag-count-badge">
-                    <span class="flag-count-label">配置数</span>
-                    <span id="flagCount" class="flag-count-val">0 / 3</span>
+                <!-- 1番目（左）: フォトライブラリボタン -->
+                <div class="panel-action-left">
+                    <button type="button" id="galleryBtn" class="btn btn-gallery" title="撮影した写真を見る">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                        <span>写真</span>
+                        <span id="galleryCountBadge" class="gallery-badge">0</span>
+                    </button>
                 </div>
 
-                <button type="button" id="shutterBtn" class="btn btn-shutter" aria-label="撮影して保存" title="撮影して保存">
-                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
-                        </path>
-                        <circle cx="12" cy="13" r="4"></circle>
-                    </svg>
-                </button>
+                <!-- 2番目（中央）: シャッターボタン -->
+                <div class="panel-action-center">
+                    <button type="button" id="shutterBtn" class="btn btn-shutter" aria-label="撮影" title="撮影">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
+                            </path>
+                            <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- 3番目（右）: 旗を追加ボタン + 設置数バッジ -->
+                <div class="panel-action-right">
+                    <button type="button" id="addFlagBtn" class="btn btn-primary btn-action" title="旗を追加">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+                            <line x1="4" y1="22" x2="4" y2="15"></line>
+                            <line x1="17" y1="17" x2="17" y2="23"></line>
+                            <line x1="14" y1="20" x2="20" y2="20"></line>
+                        </svg>
+                        <span>旗を追加</span>
+                        <span id="flagCount" class="flag-count-pill">0/3</span>
+                    </button>
+                </div>
             </div>
 
             <!-- 展開エリア -->
@@ -218,21 +239,14 @@
                 <div id="selectedFlagControls" class="selected-flag-controls">
                     <div class="selected-flag-header">
                         <span class="selected-flag-label">
-                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <polyline points="12 6 12 12 16 14"></polyline>
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                                stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+                                <line x1="4" y1="22" x2="4" y2="15"></line>
                             </svg>
-                            選択中ののぼり旗の設定
+                            <span>選択中ののぼり旗の設定</span>
                         </span>
                         <button type="button" id="deleteFlagBtn" class="btn btn-danger btn-small">
-                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                                <path d="M10 11v6"></path>
-                                <path d="M14 11v6"></path>
-                            </svg>
                             削除
                         </button>
                     </div>
@@ -250,6 +264,14 @@
                                 <input type="color" id="standColor" class="color-input" value="#333333">
                                 <span class="color-picker-hint">タップして色を変更</span>
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 12px; margin-bottom: 0;">
+                        <label for="flagOpacity" class="form-label">旗の不透明度</label>
+                        <div class="range-wrapper">
+                            <input type="range" id="flagOpacity" class="range-input" min="10" max="100" value="90">
+                            <span id="flagOpacityVal" class="range-val">90%</span>
                         </div>
                     </div>
                 </div>
@@ -310,7 +332,7 @@
                         <div class="form-group">
                             <label for="lightStrength" class="form-label">光の強さ</label>
                             <div class="range-wrapper">
-                                <input type="range" id="lightStrength" class="range-input" min="0" max="200"
+                                <input type="range" id="lightStrength" class="range-input" min="0" max="100"
                                     value="100">
                                 <span id="lightStrengthVal" class="range-val">100%</span>
                             </div>
@@ -319,8 +341,8 @@
                             <label for="shadowIntensity" class="form-label">影の濃さ</label>
                             <div class="range-wrapper">
                                 <input type="range" id="shadowIntensity" class="range-input" min="0" max="100"
-                                    value="40">
-                                <span id="shadowIntensityVal" class="range-val">40%</span>
+                                    value="15">
+                                <span id="shadowIntensityVal" class="range-val">15%</span>
                             </div>
                         </div>
                     </div>
@@ -329,6 +351,73 @@
                 <div class="panel-footer-note">
                     <span>※画面上の旗を1本指でスワイプすると移動、2本指でピンチすると拡大縮小ができます。</span>
                 </div>
+
+                <div class="panel-home-action">
+                    <button type="button" id="backToHomeBtn" class="btn btn-secondary btn-back-home">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                        </svg>
+                        <span>トップページに戻る</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         フォトライブラリ モーダル (Save / Share Modal)
+         ============================================================ -->
+    <div id="shareModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3 class="modal-title" id="galleryModalTitle">撮影した写真</h3>
+            <p class="modal-desc" id="galleryModalDesc">
+                画像を長押し（またはダウンロードボタン）で保存できます。<br>
+                <span style="color: var(--primary-color); font-weight: bold;">※最大10枚まで一時保存されます。</span>
+            </p>
+
+            <!-- 写真が0枚の場合 -->
+            <div id="galleryEmptyState" class="gallery-empty-state" style="display: none;">
+                <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="#aaa" stroke-width="1.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+                <p>まだ撮影された写真がありません。<br>カメラボタンを押して撮影してください。</p>
+            </div>
+
+            <!-- 写真がある場合の表示 -->
+            <div id="galleryContentArea" class="gallery-content-area">
+                <!-- サムネイル一覧 (横スクロール) -->
+                <div id="galleryThumbnails" class="gallery-thumbnails-strip"></div>
+
+                <!-- メインプレビュー画像 -->
+                <div class="modal-image-wrapper">
+                    <img id="shareImagePreview" src="" alt="撮影写真プレビュー">
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" id="downloadModalBtn" class="btn btn-primary">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        <span>ダウンロード</span>
+                    </button>
+                    <button type="button" id="deletePhotoBtn" class="btn btn-danger btn-modal-delete" title="この写真を削除">
+                        削除
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-actions-secondary">
+                <button type="button" id="closeModalBtn" class="btn btn-secondary" style="width: 100%;">
+                    閉じる
+                </button>
             </div>
         </div>
     </div>
@@ -343,7 +432,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <!-- アプリケーション (ES Module) -->
-    <script type="module" src="js/app.js"></script>
+    <script type="module" src="js/app.js?v=0.50"></script>
 
 </body>
 

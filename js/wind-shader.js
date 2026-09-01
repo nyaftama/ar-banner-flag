@@ -54,11 +54,12 @@ const flagVertexShader = /* glsl */ `
   }
 `;
 
-/** フラグメントシェーダー: テクスチャ描画 + 簡易ライティング */
+/** フラグメントシェーダー: テクスチャ描画 + 簡易ライティング + 不透明度 */
 const flagFragmentShader = /* glsl */ `
   uniform sampler2D uTexture;
   uniform vec3 uLightDir;
   uniform float uLightIntensity;
+  uniform float uOpacity;
 
   varying vec2 vUv;
   varying vec3 vNormal;
@@ -76,16 +77,17 @@ const flagFragmentShader = /* glsl */ `
     float backDiffuse = max(-NdotL, 0.0) * uLightIntensity * 0.4;
     float totalLight = 0.35 + (diffuse + backDiffuse) * 0.65;
 
-    gl_FragColor = vec4(texColor.rgb * totalLight, texColor.a);
+    gl_FragColor = vec4(texColor.rgb * totalLight, texColor.a * uOpacity);
   }
 `;
 
 /**
  * 風なびきシェーダーマテリアルを生成
  * @param {THREE.Texture} texture - 旗に貼るテクスチャ
+ * @param {number} [opacity=0.95] - 不透明度
  * @returns {THREE.ShaderMaterial}
  */
-export function createWindMaterial(texture) {
+export function createWindMaterial(texture, opacity = 0.90) {
   return new THREE.ShaderMaterial({
     uniforms: {
       uTexture:       { value: texture },
@@ -94,11 +96,13 @@ export function createWindMaterial(texture) {
       uWindAngle:     { value: Math.PI * 0.5 },
       uLightDir:      { value: new THREE.Vector3(1, 1, 1).normalize() },
       uLightIntensity: { value: 1.0 },
+      uOpacity:       { value: opacity },
     },
     vertexShader: flagVertexShader,
     fragmentShader: flagFragmentShader,
     side: THREE.DoubleSide,
     transparent: true,
+    depthWrite: false, // 透過オブジェクトの描画順序トラブル防止
   });
 }
 
