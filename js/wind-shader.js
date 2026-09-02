@@ -57,20 +57,25 @@ const flagVertexShader = /* glsl */ `
   }
 `;
 
-/** フラグメントシェーダー: テクスチャ描画 + 簡易ライティング + 光色 + 不透明度 */
+/** フラグメントシェーダー: テクスチャ描画 + 反転 + 簡易ライティング + 光色 + 不透明度 */
 const flagFragmentShader = /* glsl */ `
   uniform sampler2D uTexture;
   uniform vec3 uLightDir;
   uniform vec3 uLightColor;
   uniform float uLightIntensity;
   uniform float uOpacity;
+  uniform float uFlipH;
+  uniform float uFlipV;
 
   varying vec2 vUv;
   varying vec3 vNormal;
   varying vec3 vWorldPosition;
 
   void main() {
-    vec4 texColor = texture2D(uTexture, vUv);
+    vec2 texUv = vUv;
+    if (uFlipH > 0.5) texUv.x = 1.0 - texUv.x;
+    if (uFlipV > 0.5) texUv.y = 1.0 - texUv.y;
+    vec4 texColor = texture2D(uTexture, texUv);
 
     // 簡易 Lambert ライティング
     vec3 lightDir = normalize(uLightDir);
@@ -91,9 +96,11 @@ const flagFragmentShader = /* glsl */ `
  * 風なびきシェーダーマテリアルを生成
  * @param {THREE.Texture} texture - 旗に貼るテクスチャ
  * @param {number} [opacity=0.95] - 不透明度
+ * @param {boolean} [flipH=false] - 水平反転
+ * @param {boolean} [flipV=false] - 垂直反転
  * @returns {THREE.ShaderMaterial}
  */
-export function createWindMaterial(texture, opacity = 0.90) {
+export function createWindMaterial(texture, opacity = 0.90, flipH = false, flipV = false) {
   return new THREE.ShaderMaterial({
     uniforms: {
       uTexture:       { value: texture },
@@ -104,6 +111,8 @@ export function createWindMaterial(texture, opacity = 0.90) {
       uLightColor:    { value: new THREE.Color(1, 1, 1) },
       uLightIntensity: { value: 1.0 },
       uOpacity:       { value: opacity },
+      uFlipH:         { value: flipH ? 1.0 : 0.0 },
+      uFlipV:         { value: flipV ? 1.0 : 0.0 },
     },
     vertexShader: flagVertexShader,
     fragmentShader: flagFragmentShader,

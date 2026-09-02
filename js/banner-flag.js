@@ -3,7 +3,7 @@
  * のぼり旗3Dオブジェクト（旗メッシュ + ポール + スタンド）
  */
 
-import { createWindMaterial } from './wind-shader.js?v=0.90';
+import { createWindMaterial } from './wind-shader.js?v=0.91';
 
 /** のぼり旗の基準定数 */
 const FLAG_BASE_HEIGHT = 1.8; // 基準の高さ 180cm
@@ -29,6 +29,9 @@ export class BannerFlag {
     this.group.userData.flagIndex = index;
 
     this._opacity = 0.90; // デフォルト90%
+    this._flipH = false;  // 水平反転 (左右反転)
+    this._flipV = false;  // 垂直反転 (上下反転)
+    this._dimmed = false; // 非選択時の半透明ディミング状態
     this._flagWidth = 0.6;
     this._flagHeight = 1.8;
     this.thumbnailUrl = '';
@@ -130,13 +133,47 @@ export class BannerFlag {
   /** @param {number} val - 0〜1 (例: 0.95) */
   setOpacity(val) {
     this._opacity = val;
-    if (this._flagMaterial) {
-      this._flagMaterial.uniforms.uOpacity.value = val;
+    if (this._flagMaterial?.uniforms?.uOpacity) {
+      this._flagMaterial.uniforms.uOpacity.value = this._dimmed ? (val * 0.28) : val;
     }
   }
 
   get opacity() {
     return this._opacity;
+  }
+
+  // ────────── ディミング (非選択時の半透明化) ──────────
+
+  /**
+   * 選択中でない旗の全体（布地・ポール・スタンド）を半透明化
+   * @param {boolean} dimmed
+   */
+  setDimmed(dimmed) {
+    this._dimmed = Boolean(dimmed);
+    const targetOpacity = this._dimmed ? (this._opacity * 0.28) : this._opacity;
+
+    // 旗布マテリアル
+    if (this._flagMaterial?.uniforms?.uOpacity) {
+      this._flagMaterial.uniforms.uOpacity.value = targetOpacity;
+    }
+
+    // ポール
+    if (this._poleMaterial) {
+      this._poleMaterial.transparent = this._dimmed;
+      this._poleMaterial.opacity = this._dimmed ? 0.3 : 1.0;
+      this._poleMaterial.needsUpdate = true;
+    }
+
+    // スタンド
+    if (this._standMaterial) {
+      this._standMaterial.transparent = this._dimmed;
+      this._standMaterial.opacity = this._dimmed ? 0.3 : 1.0;
+      this._standMaterial.needsUpdate = true;
+    }
+  }
+
+  get dimmed() {
+    return Boolean(this._dimmed);
   }
 
   // ────────── ポール / スタンドの色変更 ──────────
@@ -168,6 +205,33 @@ export class BannerFlag {
 
   get rotationY() {
     return this.group.rotation.y;
+  }
+
+  // ────────── 反転（水平・垂直） ──────────
+
+  /**
+   * @param {boolean} flipH - 水平反転
+   * @param {boolean} flipV - 垂直反転
+   */
+  setFlip(flipH, flipV) {
+    this._flipH = Boolean(flipH);
+    this._flipV = Boolean(flipV);
+    if (this._flagMaterial && this._flagMaterial.uniforms) {
+      if (this._flagMaterial.uniforms.uFlipH) {
+        this._flagMaterial.uniforms.uFlipH.value = this._flipH ? 1.0 : 0.0;
+      }
+      if (this._flagMaterial.uniforms.uFlipV) {
+        this._flagMaterial.uniforms.uFlipV.value = this._flipV ? 1.0 : 0.0;
+      }
+    }
+  }
+
+  get flipH() {
+    return this._flipH;
+  }
+
+  get flipV() {
+    return this._flipV;
   }
 
   // ────────── 風パラメータ更新 ──────────
@@ -216,7 +280,7 @@ export class BannerFlag {
       FLAG_SEGMENTS_W, FLAG_SEGMENTS_H
     );
 
-    this._flagMaterial = createWindMaterial(texture, this._opacity);
+    this._flagMaterial = createWindMaterial(texture, this._opacity, this._flipH, this._flipV);
     this._flagMesh = new THREE.Mesh(geo, this._flagMaterial);
     this._flagMesh.castShadow = true;
 

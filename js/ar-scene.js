@@ -3,7 +3,7 @@
  * Three.js シーン構築、カメラ・ジャイロ連動、ライティング、レンダリングループ
  */
 
-import { BannerFlag } from './banner-flag.js?v=0.90';
+import { BannerFlag } from './banner-flag.js?v=0.91';
 
 export class ARScene {
   /**
@@ -28,6 +28,7 @@ export class ARScene {
     // ── 風パラメータ ──
     this._windStrength = 0.3;
     this._windAngle = Math.PI * 0.5;
+    this._windVisualizerMode = 'normal';
 
     // ── ライトパラメータ ──
     this._lightAzimuth = Math.PI / 4;  // 水平角
@@ -102,6 +103,9 @@ export class ARScene {
 
   setWindStrength(val) {
     this._windStrength = val;
+    if (this._windVisualizerMode === 'strength' && this._windVisualizerGroup) {
+      this._windVisualizerGroup.visible = (val > 0.001);
+    }
   }
   setWindAngle(rad) {
     this._windAngle = rad;
@@ -138,8 +142,8 @@ export class ARScene {
   }
 
   /**
-   * カメラのズーム倍率を設定 (1x / 2x)
-   * @param {number} zoomFactor - 1 または 2
+   * カメラのズーム倍率を設定 (1x / 2x / 3x)
+   * @param {number} zoomFactor - 1, 2, 3
    */
   setZoom(zoomFactor = 1) {
     if (!this._camera) return;
@@ -150,10 +154,21 @@ export class ARScene {
   /**
    * 風向き可視化エフェクトの表示/非表示
    * @param {boolean} visible
+   * @param {'angle' | 'strength' | 'normal'} [mode='normal'] - 調整項目モード
    */
-  setWindVisualizer(visible) {
+  setWindVisualizer(visible, mode = 'normal') {
+    this._windVisualizerMode = mode;
     if (this._windVisualizerGroup) {
-      this._windVisualizerGroup.visible = visible;
+      if (!visible) {
+        this._windVisualizerGroup.visible = false;
+        return;
+      }
+      // 'strength' (風の強さ編集) モードで強さが0%なら非表示
+      if (mode === 'strength' && this._windStrength <= 0.001) {
+        this._windVisualizerGroup.visible = false;
+      } else {
+        this._windVisualizerGroup.visible = true;
+      }
     }
   }
 
@@ -274,21 +289,24 @@ export class ARScene {
     this._windVisualizerGroup.visible = false;
     this._scene.add(this._windVisualizerGroup);
 
-    // 1. 風の流線 (LineSegments)
+    // 1. 風の流線 (InstancedMesh による太さのある流線シリンダー)
     const lineCount = 36;
-    const positions = new Float32Array(lineCount * 6);
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    // 先端をやや細く (0.007)、後端をしっかり (0.016) にした流線形状
+    const geom = new THREE.CylinderGeometry(0.007, 0.016, 1.0, 6);
+    geom.rotateX(Math.PI / 2); // デフォルトの+Y軸から+Z軸向きに回転
 
-    const material = new THREE.LineBasicMaterial({
-      color: 0x81c784, // 淡いグリーン
+    const material = new THREE.MeshBasicMaterial({
+      color: 0x81c784, // 視認性の高いミントグリーン
       transparent: true,
-      opacity: 0.8,
-      linewidth: 2,
+      opacity: 0.65,
     });
 
-    this._windLinesMesh = new THREE.LineSegments(geometry, material);
+    this._windLinesMesh = new THREE.InstancedMesh(geom, material, lineCount);
+    this._windLinesMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this._windVisualizerGroup.add(this._windLinesMesh);
+
+    // インスタンス変換用ダミーオブジェクト
+    this._windDummy = new THREE.Object3D();
 
     // 各ストロークの初期データ
     this._windParticles = [];
@@ -298,13 +316,19 @@ export class ARScene {
         y: 0.2 + Math.random() * 2.2,
         z: (Math.random() - 0.5) * 3.5,
         speed: 1.2 + Math.random() * 1.6,
-        length: 0.4 + Math.random() * 0.35,
+        length: 0.45 + Math.random() * 0.4,
       });
     }
   }
 
   _updateWindVisualizer(delta) {
     if (!this._windVisualizerGroup || !this._windVisualizerGroup.visible) return;
+
+    // 'strength' (風の強さ) モードで風速0なら処理不要
+    if (this._windVisualizerMode === 'strength' && this._windStrength <= 0.001) {
+      this._windVisualizerGroup.visible = false;
+      return;
+    }
 
     // 中心位置を旗の近くに合わせる
     let centerX = 0;
@@ -320,9 +344,29 @@ export class ARScene {
     const dirX = Math.sin(this._windAngle);
     const dirZ = -Math.cos(this._windAngle);
 
-    // 流線の更新
-    const positions = this._windLinesMesh.geometry.attributes.position.array;
-    const speedMult = 1.0 + this._windStrength * 3.5;
+    // 速度倍率の計算 (案A: 編集項目に応じた最適化)
+    let speedMult = 0;
+    if (this._windVisualizerMode === 'angle') {
+      // 風向きガイドモード: 風速が0%でもどちらを向いているか分かるよう、基本速度を確保
+      speedMult = 1.0 + Math.max(0.15, this._windStrength) * 3.5;
+    } else {
+      // 風の強さモード: 風の強さに完全比例 (0%なら0、100%なら約 4.5)
+      speedMult = this._windStrength * 4.5;
+    }
+
+    // 不透明度の調整 (風の強さに応じて薄く/濃く)
+    if (this._windLinesMesh && this._windLinesMesh.material) {
+      let targetOpacity = 0.5;
+      if (this._windVisualizerMode === 'angle') {
+        targetOpacity = this._windStrength <= 0.001 ? 0.35 : (0.25 + this._windStrength * 0.4);
+      } else {
+        targetOpacity = 0.15 + this._windStrength * 0.5;
+      }
+      this._windLinesMesh.material.opacity = Math.max(0, Math.min(0.75, targetOpacity));
+    }
+
+    // 向きの回転角度 (進行方向 +Z を (dirX, 0, dirZ) に合わせる)
+    const rotY = Math.atan2(dirX, dirZ);
 
     for (let i = 0; i < this._windParticles.length; i++) {
       const p = this._windParticles[i];
@@ -344,18 +388,20 @@ export class ARScene {
         p.y = 0.2 + Math.random() * 2.2;
       }
 
-      // 頂点座標のセット
-      const idx = i * 6;
-      positions[idx] = p.x;
-      positions[idx + 1] = p.y;
-      positions[idx + 2] = p.z;
+      // シリンダーの配置: 先端が p(x,y,z) で後方に伸びるので中心は p - dir * (length * 0.5)
+      this._windDummy.position.set(
+        p.x - dirX * (p.length * 0.5),
+        p.y,
+        p.z - dirZ * (p.length * 0.5)
+      );
+      this._windDummy.rotation.set(0, rotY, 0);
+      this._windDummy.scale.set(1, 1, p.length);
+      this._windDummy.updateMatrix();
 
-      positions[idx + 3] = p.x - dirX * p.length;
-      positions[idx + 4] = p.y;
-      positions[idx + 5] = p.z - dirZ * p.length;
+      this._windLinesMesh.setMatrixAt(i, this._windDummy.matrix);
     }
 
-    this._windLinesMesh.geometry.attributes.position.needsUpdate = true;
+    this._windLinesMesh.instanceMatrix.needsUpdate = true;
   }
 
   _updateLightPosition() {
@@ -445,6 +491,52 @@ export class ARScene {
     this._secondaryFlagForMarker = null;
   }
 
+  /**
+   * 旗マーカーのY座標を算出 (画面上端からはみ出さないよう適応型クランプ)
+   * @param {THREE.Group} group
+   * @param {number} scale
+   * @param {number} floatSin
+   * @returns {number}
+   */
+  _calculateAdaptiveMarkerY(group, scale, floatSin) {
+    const baseY = 3.0 * scale;
+    const defaultY = group.position.y + baseY + floatSin * scale;
+    if (!this._camera) return defaultY;
+
+    if (!this._vpMatrix) this._vpMatrix = new THREE.Matrix4();
+    this._vpMatrix.multiplyMatrices(this._camera.projectionMatrix, this._camera.matrixWorldInverse);
+    const m = this._vpMatrix.elements;
+
+    const gx = group.position.x;
+    const gz = group.position.z;
+
+    const A = m[5];
+    const B = m[1] * gx + m[9] * gz + m[13];
+    const C = m[7];
+    const D = m[3] * gx + m[11] * gz + m[15];
+
+    const defaultW = C * defaultY + D;
+    const defaultClipY = A * defaultY + B;
+
+    if (defaultW <= 0.001) return defaultY;
+
+    const currentNdcY = defaultClipY / defaultW;
+    const limitNdcY = 0.82;
+
+    if (currentNdcY <= limitNdcY) {
+      return defaultY;
+    }
+
+    const denom = A - limitNdcY * C;
+    if (Math.abs(denom) > 1e-6) {
+      const clampedY = (limitNdcY * D - B) / denom;
+      const minY = group.position.y + 0.4 * scale;
+      return Math.max(minY, Math.min(defaultY, clampedY));
+    }
+
+    return defaultY;
+  }
+
   _updateFlagIndicatorMarker(elapsed) {
     const floatSin = Math.sin(elapsed * 4.0) * 0.05;
     const rotY = elapsed * 1.5;
@@ -454,10 +546,10 @@ export class ARScene {
       const group = this._selectedFlagForMarker.group;
       if (group) {
         const scale = group.scale.x;
-        const baseY = 3.0 * scale;
+        const targetY = this._calculateAdaptiveMarkerY(group, scale, floatSin);
         this._flagMarker.position.set(
           group.position.x,
-          group.position.y + baseY + floatSin * scale,
+          targetY,
           group.position.z
         );
         this._flagMarker.scale.setScalar(scale);
@@ -470,10 +562,10 @@ export class ARScene {
       const group = this._secondaryFlagForMarker.group;
       if (group) {
         const scale = group.scale.x;
-        const baseY = 3.0 * scale;
+        const targetY = this._calculateAdaptiveMarkerY(group, scale, floatSin);
         this._flagMarkerSecondary.position.set(
           group.position.x,
-          group.position.y + baseY + floatSin * scale,
+          targetY,
           group.position.z
         );
         this._flagMarkerSecondary.scale.setScalar(scale);

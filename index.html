@@ -22,7 +22,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="css/style.css?v=0.90">
+    <link rel="stylesheet" href="css/style.css?v=0.91">
 </head>
 
 <body>
@@ -33,7 +33,7 @@
             <!-- Header Meta -->
             <div class="header-meta">
                 <div class="version-group">
-                    <span class="version-badge">v0.90</span>
+                    <span class="version-badge">v0.91</span>
                     <a href="https://github.com/nyaftama/ar-banner-flag#%E6%9B%B4%E6%96%B0%E5%B1%A5%E6%AD%B4"
                         target="_blank" rel="noopener noreferrer" class="changelog-link">更新履歴</a>
                 </div>
@@ -179,18 +179,9 @@
             <canvas id="arCanvas" class="ar-canvas"></canvas>
         </div>
 
-        <!-- ─── 画面右上コントロール (カメラ切替・倍率変更) ─── -->
+        <!-- ─── 画面右上コントロール (倍率変更) ─── -->
         <div class="ar-top-controls">
-            <button type="button" id="switchCameraBtn" class="btn-top-control" title="背面カメラ切り替え" aria-label="背面カメラ切り替え">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20 10V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3"></path>
-                    <path d="M4 14v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path>
-                    <path d="M16 2l4 4-4 4"></path>
-                    <path d="M8 22l-4-4 4-4"></path>
-                </svg>
-            </button>
-            <button type="button" id="zoomToggleBtn" class="btn-top-control btn-zoom" title="倍率切り替え (1x/2x)"
+            <button type="button" id="zoomToggleBtn" class="btn-top-control btn-zoom" title="倍率切り替え (1x/2x/3x)"
                 aria-label="倍率切り替え">
                 <span id="zoomLabel">1x</span>
             </button>
@@ -263,7 +254,8 @@
                     <div class="dashboard-section-header">
                         <div class="dashboard-section-title-group">
                             <span class="dashboard-section-title" id="selectedFlagTitle">選択中の旗</span>
-                            <button type="button" id="switchFlagBtn" class="btn btn-small btn-switch-flag" title="別の旗に切り替え" disabled>
+                            <button type="button" id="switchFlagBtn" class="btn btn-small btn-switch-flag"
+                                title="別の旗に切り替え" disabled>
                                 切替
                             </button>
                         </div>
@@ -277,6 +269,12 @@
                             <div class="tile-icon" id="tileIconFlagRotation"></div>
                             <div class="tile-label">旗の向き</div>
                             <div class="tile-value" id="tileValFlagRotation">90°</div>
+                        </button>
+                        <!-- 旗の反転 (水平/垂直) -->
+                        <button type="button" class="dashboard-tile" data-setting="flagFlip">
+                            <div class="tile-icon" id="tileIconFlagFlip"></div>
+                            <div class="tile-label">旗の反転</div>
+                            <div class="tile-value" id="tileValFlagFlip">標準</div>
                         </button>
                         <!-- 旗の不透明度 -->
                         <button type="button" class="dashboard-tile" data-setting="flagOpacity">
@@ -303,7 +301,8 @@
                 <div class="dashboard-section">
                     <div class="dashboard-section-header">
                         <div class="dashboard-section-title">環境・ライティング設定</div>
-                        <button type="button" id="resetEnvSettingsBtn" class="btn btn-small btn-reset" title="環境設定を初期値に戻す">
+                        <button type="button" id="resetEnvSettingsBtn" class="btn btn-small btn-reset"
+                            title="環境設定を初期値に戻す">
                             リセット
                         </button>
                     </div>
@@ -389,15 +388,15 @@
             <div id="singleSettingControlsColorTemp" class="single-setting-controls-colortemp" style="display: none;">
                 <div class="color-temp-preset-row">
                     <button type="button" class="btn-temp-chip" data-temp="0" style="background: #ff944d;"
-                        title="暖色 (夕暮れ)">暖色</button>
+                        title="暖色">暖色</button>
                     <button type="button" class="btn-temp-chip" data-temp="25" style="background: #ffd1a4;"
                         title="温白色">温白</button>
                     <button type="button" class="btn-temp-chip active" data-temp="50" style="background: #ffffff;"
-                        title="自然光 (白色)">自然</button>
+                        title="自然光">自然</button>
                     <button type="button" class="btn-temp-chip" data-temp="75" style="background: #badfff;"
                         title="昼光色">昼光</button>
                     <button type="button" class="btn-temp-chip" data-temp="100" style="background: #80bfff;"
-                        title="寒色 (青空)">寒色</button>
+                        title="寒色">寒色</button>
                 </div>
                 <div class="color-temp-slider-row">
                     <span class="temp-indicator-label warm">暖色</span>
@@ -432,8 +431,29 @@
             </div>
 
             <!-- 旗の切り替えコントロール (サムネイル一覧) -->
-            <div id="singleSettingControlsSwitchFlag" class="single-setting-controls-switch-flag" style="display: none;">
+            <div id="singleSettingControlsSwitchFlag" class="single-setting-controls-switch-flag"
+                style="display: none;">
                 <div id="flagSwitchList" class="flag-switch-list"></div>
+            </div>
+
+            <!-- 旗の反転 (水平/垂直) コントロール -->
+            <div id="singleSettingControlsFlip" class="single-setting-controls-flip" style="display: none;">
+                <div class="flip-toggle-row">
+                    <button type="button" id="flipHorizontalBtn" class="btn-flip-toggle">
+                        <svg viewBox="0 0 16 16" width="18" height="18" fill="currentColor" class="flip-icon">
+                            <path
+                                d="M7 2.5a.5.5 0 0 0-.939-.24l-6 11A.5.5 0 0 0 .5 14h6a.5.5 0 0 0 .5-.5zm2.376-.484a.5.5 0 0 1 .563.245l6 11A.5.5 0 0 1 15.5 14h-6a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .376-.484M10 4.46V13h4.658z" />
+                        </svg>
+                        <span>水平方向に反転</span>
+                    </button>
+                    <button type="button" id="flipVerticalBtn" class="btn-flip-toggle">
+                        <svg viewBox="0 0 16 16" width="18" height="18" fill="currentColor" class="flip-icon">
+                            <path
+                                d="M13.5 7a.5.5 0 0 0 .24-.939l-11-6A.5.5 0 0 0 2 .5v6a.5.5 0 0 0 .5.5zm.485 2.376a.5.5 0 0 1-.246.563l-11 6A.5.5 0 0 1 2 15.5v-6a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 .485.376M11.539 10H3v4.658L11.54 10z" />
+                        </svg>
+                        <span>垂直方向に反転</span>
+                    </button>
+                </div>
             </div>
 
             <!-- 通常設定の確定・キャンセルボタン -->
@@ -553,7 +573,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <!-- アプリケーション (ES Module) -->
-    <script type="module" src="js/app.js?v=0.90"></script>
+    <script type="module" src="js/app.js?v=0.91"></script>
 
 </body>
 

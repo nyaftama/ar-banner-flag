@@ -1,13 +1,13 @@
 /**
  * app.js
  * AR のぼり旗カメラ - アプリケーション エントリポイント
- * ダッシュボード設定 & 個別調整モード、カメラ切替、倍率変更、フォトライブラリ
+ * ダッシュボード設定 & 個別調整モード、倍率変更（1x/2x/3x）、フォトライブラリ
  */
 
-import { ARScene } from './ar-scene.js?v=0.90';
-import { BannerFlag } from './banner-flag.js?v=0.90';
-import { TouchControls } from './touch-controls.js?v=0.90';
-import { captureComposite, downloadBlob } from './capture.js?v=0.90';
+import { ARScene } from './ar-scene.js?v=0.91';
+import { BannerFlag } from './banner-flag.js?v=0.91';
+import { TouchControls } from './touch-controls.js?v=0.91';
+import { captureComposite, downloadBlob } from './capture.js?v=0.91';
 
 // ────────── 定数 ──────────
 const MAX_FLAGS = 3;
@@ -23,11 +23,8 @@ let selectedFlagIndex = -1;
 const capturedPhotos = [];
 let currentPhotoIndex = 0;
 
-// カメラ・ズーム状態
+// ズーム状態 (1x / 2x / 3x)
 let currentZoom = 1;
-/** @type {MediaDeviceInfo[]} */
-let availableBackCameras = [];
-let currentCameraIndex = 0;
 
 // 環境パラメータのデフォルト値
 const DEFAULT_ENV_SETTINGS = {
@@ -84,7 +81,6 @@ const arCanvas = $('arCanvas');
 const flagTransformInfo = $('flagTransformInfo');
 
 // 画面右上コントロール
-const switchCameraBtn = $('switchCameraBtn');
 const zoomToggleBtn = $('zoomToggleBtn');
 const zoomLabel = $('zoomLabel');
 
@@ -126,6 +122,9 @@ const singleSettingControlsColorTemp = $('singleSettingControlsColorTemp');
 const singleSettingColorTempSlider = $('singleSettingColorTempSlider');
 const singleSettingControlsSwitchFlag = $('singleSettingControlsSwitchFlag');
 const flagSwitchList = $('flagSwitchList');
+const singleSettingControlsFlip = $('singleSettingControlsFlip');
+const flipHorizontalBtn = $('flipHorizontalBtn');
+const flipVerticalBtn = $('flipVerticalBtn');
 const singleSettingActionsDefault = $('singleSettingActionsDefault');
 const singleSettingActionsSwitch = $('singleSettingActionsSwitch');
 const settingCancelBtn = $('settingCancelBtn');
@@ -182,13 +181,13 @@ function updateFlagCount() {
  */
 function getWindStrengthSvg(pct) {
   if (pct === 0) {
-    return `<svg viewBox="0 0 28 28" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="14" x2="23" y2="14" stroke-dasharray="2 3"/></svg>`;
+    return `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="12" x2="16" y2="12"/></svg>`;
   } else if (pct <= 30) {
-    return `<svg viewBox="0 0 28 28" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 14c4-2 8 2 12 0s6-1.5 6-1.5"/></svg>`;
+    return `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.73 7.73A2.5 2.5 0 1 1 19.5 12H2"/></svg>`;
   } else if (pct <= 70) {
-    return `<svg viewBox="0 0 28 28" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 11c3.5-1.5 7 1.5 10.5 0s7.5-1 9.5-.5"/><path d="M4 17c3.5-1.5 7 1.5 10.5 0s7.5-1 9.5-.5"/></svg>`;
+    return `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2"/><path d="M17.73 7.73A2.5 2.5 0 1 1 19.5 12H2"/></svg>`;
   } else {
-    return `<svg viewBox="0 0 28 28" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 9c4-2 8 2 12 0s7-1.5 10-1"/><path d="M3 14c4-2 8 2 12 0s7-1.5 10-1"/><path d="M3 19c4-2 8 2 12 0s7-1.5 10-1"/></svg>`;
+    return `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"></path></svg>`;
   }
 }
 
@@ -208,13 +207,21 @@ function getLightStrengthSvg(pct) {
 }
 
 /**
- * 影の濃さ
+ * 影の濃さ (光の向きに応じて影の方向が自動変化)
+ * @param {number} pct - 影の濃さ (0〜100%)
+ * @param {number} [angleDeg] - 光の向き角度 (0〜360°)
  */
-function getShadowIntensitySvg(pct) {
+function getShadowIntensitySvg(pct, angleDeg = (envSettings?.lightAngle ?? 135)) {
+  const rad = (angleDeg * Math.PI) / 180;
+  const offsetDist = 3.6;
+  const dx = (Math.sin(rad) * offsetDist).toFixed(1);
+  const dy = (-Math.cos(rad) * offsetDist).toFixed(1);
+  const fillOpacity = Math.max(0.12, Math.min(0.6, (pct / 100) * 0.45 + 0.1));
+
   return `
     <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="7" y="7" width="13" height="13" rx="2.5" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="1.4" stroke-dasharray="2 2" />
-      <rect x="4" y="4" width="13" height="13" rx="2.5" fill="#ffffff" stroke="currentColor" stroke-width="2" />
+      <rect x="6" y="6" width="12" height="12" rx="2.5" fill="currentColor" fill-opacity="${fillOpacity}" stroke="currentColor" stroke-width="1.3" stroke-dasharray="2 2" transform="translate(${dx}, ${dy})" />
+      <rect x="6" y="6" width="12" height="12" rx="2.5" fill="#ffffff" stroke="currentColor" stroke-width="2" />
     </svg>
   `;
 }
@@ -294,11 +301,11 @@ function calcColorFromTemp(temp) {
  * 色温度のラベル
  */
 function getTempLabel(temp) {
-  if (temp <= 15) return '暖色 (夕暮れ)';
+  if (temp <= 15) return '暖色';
   if (temp <= 35) return '温白色';
   if (temp <= 65) return '自然光';
   if (temp <= 85) return '昼光色';
-  return '寒色 (青空)';
+  return '寒色';
 }
 
 /**
@@ -343,6 +350,32 @@ function getFlagRotationSvg(deg) {
       </svg>
     </div>
   `;
+}
+
+/**
+ * 旗の反転 (左上に旗シンボルバッジ + メインに symmetry-vertical)
+ */
+function getFlagFlipSvg() {
+  return `
+    <div class="dir-icon-badge-wrapper">
+      <span class="dir-symbol-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+          <line x1="4" y1="22" x2="4" y2="15"></line>
+        </svg>
+      </span>
+      <svg viewBox="0 0 16 16" width="22" height="22" fill="currentColor">
+        <path d="M7 2.5a.5.5 0 0 0-.939-.24l-6 11A.5.5 0 0 0 .5 14h6a.5.5 0 0 0 .5-.5zm2.376-.484a.5.5 0 0 1 .563.245l6 11A.5.5 0 0 1 15.5 14h-6a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .376-.484M10 4.46V13h4.658z"/>
+      </svg>
+    </div>
+  `;
+}
+
+function getFlipLabel(flipH, flipV) {
+  if (flipH && flipV) return '水平+垂直';
+  if (flipH) return '水平';
+  if (flipV) return '垂直';
+  return '標準';
 }
 
 /**
@@ -408,6 +441,9 @@ function updateDashboardUI() {
     $('tileIconFlagRotation').innerHTML = getFlagRotationSvg(rotDeg);
     $('tileValFlagRotation').textContent = `${rotDeg}°`;
 
+    $('tileIconFlagFlip').innerHTML = getFlagFlipSvg();
+    $('tileValFlagFlip').textContent = getFlipLabel(flag.flipH, flag.flipV);
+
     const opPct = Math.round(flag.opacity * 100);
     $('tileIconFlagOpacity').innerHTML = getOpacitySvg(opPct);
     $('tileValFlagOpacity').textContent = `${opPct}%`;
@@ -439,8 +475,45 @@ function updateColorTempPresetButtons(val) {
 /**
  * 選択中の旗の頭上▼マーカーの表示・非表示を制御
  */
+/**
+ * 旗の個別設定パネル表示中、選択中でない他の旗全体（布地・ポール・スタンド）を半透明にする
+ */
+function updateFlagDimming() {
+  if (!arScene || !arScene.flags) return;
+
+  const isFlagSingleSetting = (
+    activeSettingKey === 'flagRotation' ||
+    activeSettingKey === 'flagFlip' ||
+    activeSettingKey === 'flagOpacity' ||
+    activeSettingKey === 'poleColor' ||
+    activeSettingKey === 'standColor'
+  );
+
+  const isSwitchPanel = (activeSettingKey === 'switchFlag');
+
+  if (isFlagSingleSetting && selectedFlagIndex >= 0) {
+    // 旗の個別調整中: 選択中の旗のみ通常表示、それ以外の旗全体を半透明にする
+    arScene.flags.forEach((flag, idx) => {
+      flag.setDimmed(idx !== selectedFlagIndex);
+    });
+  } else if (isSwitchPanel) {
+    // 旗切り替えパネル中: 候補旗 (または現在の旗) のみ通常表示、それ以外を半透明にする
+    const activeIdx = pendingSwitchFlagIndex >= 0 ? pendingSwitchFlagIndex : selectedFlagIndex;
+    arScene.flags.forEach((flag, idx) => {
+      flag.setDimmed(idx !== activeIdx);
+    });
+  } else {
+    // パネル非表示時または環境設定時: すべて通常表示
+    arScene.flags.forEach((flag) => {
+      flag.setDimmed(false);
+    });
+  }
+}
+
 function updateFlagMarkerVisibility() {
   if (!arScene) return;
+
+  updateFlagDimming();
 
   const hasSelected = selectedFlagIndex >= 0 && arScene.flags[selectedFlagIndex];
   if (!hasSelected) {
@@ -470,6 +543,7 @@ function updateFlagMarkerVisibility() {
   // 3) または、単一の旗の個別調整パネルが表示中
   const isFlagSetting = (
     activeSettingKey === 'flagRotation' ||
+    activeSettingKey === 'flagFlip' ||
     activeSettingKey === 'flagOpacity' ||
     activeSettingKey === 'poleColor' ||
     activeSettingKey === 'standColor'
@@ -571,7 +645,7 @@ function openSwitchFlagPanel() {
     const panelHeight = singleSettingPanel.offsetHeight || 210;
     const shiftY = -Math.round(panelHeight / 2);
     if (cameraViewport) {
-      cameraViewport.style.transform = `translateY(${shiftY}px)`;
+      cameraViewport.style.setProperty('--shift-y', `${shiftY}px`);
     }
 
     updateFlagMarkerVisibility();
@@ -612,22 +686,39 @@ function openSingleSetting(key) {
     const panelHeight = singleSettingPanel.offsetHeight || 190;
     const shiftY = -Math.round(panelHeight / 2);
     if (cameraViewport) {
-      cameraViewport.style.transform = `translateY(${shiftY}px)`;
+      cameraViewport.style.setProperty('--shift-y', `${shiftY}px`);
     }
 
     updateFlagMarkerVisibility();
   });
 
   // 風向き・風の強さ調整時の可視化エフェクト
-  if (key === 'windAngle' || key === 'windStrength') {
-    arScene?.setWindVisualizer(true);
+  if (key === 'windAngle') {
+    arScene?.setWindVisualizer(true, 'angle');
+  } else if (key === 'windStrength') {
+    arScene?.setWindVisualizer(true, 'strength');
   }
 
   // モード別初期化
-  if (key === 'poleColor' || key === 'standColor') {
+  if (key === 'flagFlip') {
+    singleSettingControlsNumeric.style.display = 'none';
+    singleSettingControlsColor.style.display = 'none';
+    singleSettingControlsColorTemp.style.display = 'none';
+    if (singleSettingControlsFlip) singleSettingControlsFlip.style.display = 'flex';
+
+    const flag = arScene.flags[selectedFlagIndex];
+    activeSettingBackup = { flipH: flag.flipH, flipV: flag.flipV };
+
+    singleSettingTitle.textContent = '旗の反転';
+    if (flipHorizontalBtn) flipHorizontalBtn.classList.toggle('active', flag.flipH);
+    if (flipVerticalBtn) flipVerticalBtn.classList.toggle('active', flag.flipV);
+
+    updateSingleSettingPreview(key, { flipH: flag.flipH, flipV: flag.flipV });
+  } else if (key === 'poleColor' || key === 'standColor') {
     singleSettingControlsNumeric.style.display = 'none';
     singleSettingControlsColor.style.display = 'block';
     singleSettingControlsColorTemp.style.display = 'none';
+    if (singleSettingControlsFlip) singleSettingControlsFlip.style.display = 'none';
 
     const flag = arScene.flags[selectedFlagIndex];
     const currentColor = key === 'poleColor' ? flag.poleColor : flag.standColor;
@@ -640,6 +731,7 @@ function openSingleSetting(key) {
     singleSettingControlsNumeric.style.display = 'none';
     singleSettingControlsColor.style.display = 'none';
     singleSettingControlsColorTemp.style.display = 'block';
+    if (singleSettingControlsFlip) singleSettingControlsFlip.style.display = 'none';
 
     activeSettingBackup = envSettings.lightColorTemp;
     singleSettingTitle.textContent = '光の色 (色温度)';
@@ -650,6 +742,7 @@ function openSingleSetting(key) {
     singleSettingControlsNumeric.style.display = 'flex';
     singleSettingControlsColor.style.display = 'none';
     singleSettingControlsColorTemp.style.display = 'none';
+    if (singleSettingControlsFlip) singleSettingControlsFlip.style.display = 'none';
 
     let min = 0;
     let max = 100;
@@ -746,13 +839,18 @@ function updateSingleSettingPreview(key, val) {
     // 光源の方位角オフセット (+90°)
     arScene?.setLightAzimuth(THREE.MathUtils.degToRad((val + 90) % 360));
     envSettings.lightAngle = val;
+    // 影の濃さタイルのアイコンも光の向きにリアルタイム連動
+    const shadowTileIcon = $('tileIconShadowIntensity');
+    if (shadowTileIcon) {
+      shadowTileIcon.innerHTML = getShadowIntensitySvg(envSettings.shadowIntensity, val);
+    }
   } else if (key === 'lightStrength') {
     singleSettingIcon.innerHTML = getLightStrengthSvg(val);
     singleSettingValue.textContent = `${val}%`;
     arScene?.setLightIntensity((val / 100) * 2.0);
     envSettings.lightStrength = val;
   } else if (key === 'shadowIntensity') {
-    singleSettingIcon.innerHTML = getShadowIntensitySvg(val);
+    singleSettingIcon.innerHTML = getShadowIntensitySvg(val, envSettings.lightAngle);
     singleSettingValue.textContent = `${val}%`;
     arScene?.setShadowOpacity(val / 100);
     envSettings.shadowIntensity = val;
@@ -764,6 +862,14 @@ function updateSingleSettingPreview(key, val) {
       const rad = -THREE.MathUtils.degToRad(val - 90);
       arScene.flags[selectedFlagIndex].setRotationY(rad);
     }
+  } else if (key === 'flagFlip') {
+    singleSettingIcon.innerHTML = getFlagFlipSvg();
+    singleSettingValue.textContent = getFlipLabel(val.flipH, val.flipV);
+    if (selectedFlagIndex >= 0 && arScene?.flags[selectedFlagIndex]) {
+      arScene.flags[selectedFlagIndex].setFlip(val.flipH, val.flipV);
+    }
+    if (flipHorizontalBtn) flipHorizontalBtn.classList.toggle('active', Boolean(val.flipH));
+    if (flipVerticalBtn) flipVerticalBtn.classList.toggle('active', Boolean(val.flipV));
   } else if (key === 'flagOpacity') {
     singleSettingIcon.innerHTML = getOpacitySvg(val);
     singleSettingValue.textContent = `${val}%`;
@@ -805,11 +911,28 @@ function confirmSingleSetting() {
   closeSingleSetting();
 }
 
-function closeSingleSetting() {
-  // プレビュー画面の位置を元に戻す
+/**
+ * 通常時 (未展開コントロールパネル) のビューポート上部シフト量を取得
+ * 未展開コントロールパネルの高さの半分を上に移動
+ */
+function getDefaultViewportShift() {
+  const handleH = panelHandle?.offsetHeight || 33;
+  const actionsEl = controlPanel?.querySelector('.panel-main-actions');
+  const actionsH = actionsEl ? actionsEl.offsetHeight : 82;
+  const padBottom = controlPanel ? (parseInt(window.getComputedStyle(controlPanel).paddingBottom, 10) || 0) : 0;
+  const collapsedHeight = handleH + actionsH + padBottom;
+  return -Math.round(collapsedHeight / 2);
+}
+
+function resetViewportToDefault() {
   if (cameraViewport) {
-    cameraViewport.style.transform = 'translateY(0)';
+    cameraViewport.style.setProperty('--shift-y', `${getDefaultViewportShift()}px`);
   }
+}
+
+function closeSingleSetting() {
+  // プレビュー画面の位置を通常位置に戻す
+  resetViewportToDefault();
 
   // 風向き可視化エフェクトを無効化
   arScene?.setWindVisualizer(false);
@@ -823,6 +946,7 @@ function closeSingleSetting() {
       singleSettingPanel.style.display = 'none';
       if (singleSettingPreviewBox) singleSettingPreviewBox.style.display = 'flex';
       if (singleSettingControlsSwitchFlag) singleSettingControlsSwitchFlag.style.display = 'none';
+      if (singleSettingControlsFlip) singleSettingControlsFlip.style.display = 'none';
       if (singleSettingActionsDefault) singleSettingActionsDefault.style.display = 'flex';
       if (singleSettingActionsSwitch) singleSettingActionsSwitch.style.display = 'none';
     }
@@ -891,47 +1015,20 @@ function closeGalleryModal() {
   shareModal.style.display = 'none';
 }
 
-// ────────── カメラ映像の取得・切り替え ──────────
+// ────────── カメラ映像の取得 ──────────
 
-async function updateCameraDevices() {
-  try {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const videoInputs = devices.filter((d) => d.kind === 'videoinput');
-
-    availableBackCameras = videoInputs.filter((d) => {
-      const label = d.label.toLowerCase();
-      return !label.includes('front') && !label.includes('user') && !label.includes('前');
-    });
-
-    if (availableBackCameras.length === 0) {
-      availableBackCameras = videoInputs;
-    }
-
-    if (switchCameraBtn) {
-      switchCameraBtn.disabled = availableBackCameras.length <= 1;
-    }
-  } catch (err) {
-    console.warn('カメラデバイス列挙失敗:', err);
-    if (switchCameraBtn) switchCameraBtn.disabled = true;
-  }
-}
-
-async function startCamera(deviceId = null) {
+async function startCamera() {
   try {
     if (cameraVideo.srcObject) {
       cameraVideo.srcObject.getTracks().forEach((t) => t.stop());
+      cameraVideo.srcObject = null;
     }
 
     const videoConstraints = {
+      facingMode: 'environment',
       width: { ideal: 1920 },
       height: { ideal: 1080 },
     };
-
-    if (deviceId) {
-      videoConstraints.deviceId = { exact: deviceId };
-    } else {
-      videoConstraints.facingMode = 'environment';
-    }
 
     const stream = await navigator.mediaDevices.getUserMedia({
       video: videoConstraints,
@@ -940,8 +1037,12 @@ async function startCamera(deviceId = null) {
     cameraVideo.srcObject = stream;
     await cameraVideo.play();
 
-    await updateCameraDevices();
     applyZoom(currentZoom);
+
+    // プレビューコンテナのサイズに Three.js レンダラーを同期
+    if (arScene) {
+      arScene._handleResize();
+    }
 
     return true;
   } catch (err) {
@@ -951,17 +1052,7 @@ async function startCamera(deviceId = null) {
   }
 }
 
-async function switchCamera() {
-  if (availableBackCameras.length <= 1) return;
-
-  currentCameraIndex = (currentCameraIndex + 1) % availableBackCameras.length;
-  const nextDevice = availableBackCameras[currentCameraIndex];
-
-  showToast('カメラを切り替え中...');
-  await startCamera(nextDevice.deviceId);
-}
-
-// ────────── ズーム倍率変更 (1x / 2x) ──────────
+// ────────── ズーム倍率変更 (1x / 2x / 3x) ──────────
 
 async function applyZoom(zoom) {
   currentZoom = zoom;
@@ -982,10 +1073,13 @@ async function applyZoom(zoom) {
     }
   }
 
-  if (hwZoomApplied) {
-    cameraVideo.classList.remove('zoomed');
-  } else {
-    cameraVideo.classList.toggle('zoomed', zoom === 2);
+  cameraVideo.classList.remove('zoomed-2x', 'zoomed-3x');
+  if (!hwZoomApplied) {
+    if (zoom === 2) {
+      cameraVideo.classList.add('zoomed-2x');
+    } else if (zoom === 3) {
+      cameraVideo.classList.add('zoomed-3x');
+    }
   }
 
   if (arScene) {
@@ -994,15 +1088,16 @@ async function applyZoom(zoom) {
 }
 
 function toggleZoom() {
-  const nextZoom = currentZoom === 1 ? 2 : 1;
-  applyZoom(nextZoom);
+  const zoomCycle = [1, 2, 3];
+  const nextIndex = (zoomCycle.indexOf(currentZoom) + 1) % zoomCycle.length;
+  applyZoom(zoomCycle[nextIndex]);
 }
 
 // ────────── ジャイロセンサー許可 (iOS) ──────────
 
 function requestGyroPermissionSync() {
   if (typeof DeviceOrientationEvent !== 'undefined' &&
-      typeof DeviceOrientationEvent.requestPermission === 'function') {
+    typeof DeviceOrientationEvent.requestPermission === 'function') {
     return DeviceOrientationEvent.requestPermission().then(
       (permissionState) => permissionState === 'granted',
       (err) => {
@@ -1111,6 +1206,8 @@ async function startApp() {
   startScreen.style.display = 'none';
   arView.style.display = 'block';
 
+  resetViewportToDefault();
+
   applyZoom(1);
   animate();
 
@@ -1125,9 +1222,13 @@ async function startApp() {
 
 function bindUIEvents() {
   startBtn.addEventListener('click', startApp);
-
-  if (switchCameraBtn) switchCameraBtn.addEventListener('click', switchCamera);
   if (zoomToggleBtn) zoomToggleBtn.addEventListener('click', toggleZoom);
+
+  window.addEventListener('resize', () => {
+    if (!activeSettingKey) {
+      resetViewportToDefault();
+    }
+  });
 
   // パネル開閉 (CSSのmax-height & opacityアコーディオンでアニメーション)
   panelHandle.addEventListener('click', () => {
@@ -1222,6 +1323,29 @@ function bindUIEvents() {
     });
   }
 
+  // 旗の反転トグルボタン (水平 / 垂直)
+  if (flipHorizontalBtn) {
+    flipHorizontalBtn.addEventListener('click', () => {
+      if (selectedFlagIndex < 0 || !arScene?.flags[selectedFlagIndex]) return;
+      const flag = arScene.flags[selectedFlagIndex];
+      const newFlipH = !flag.flipH;
+      flag.setFlip(newFlipH, flag.flipV);
+      flipHorizontalBtn.classList.toggle('active', newFlipH);
+      updateSingleSettingPreview('flagFlip', { flipH: newFlipH, flipV: flag.flipV });
+    });
+  }
+
+  if (flipVerticalBtn) {
+    flipVerticalBtn.addEventListener('click', () => {
+      if (selectedFlagIndex < 0 || !arScene?.flags[selectedFlagIndex]) return;
+      const flag = arScene.flags[selectedFlagIndex];
+      const newFlipV = !flag.flipV;
+      flag.setFlip(flag.flipH, newFlipV);
+      flipVerticalBtn.classList.toggle('active', newFlipV);
+      updateSingleSettingPreview('flagFlip', { flipH: flag.flipH, flipV: newFlipV });
+    });
+  }
+
   settingCancelBtn.addEventListener('click', cancelSingleSetting);
   settingConfirmBtn.addEventListener('click', confirmSingleSetting);
 
@@ -1259,6 +1383,7 @@ function bindUIEvents() {
 
         // 現在の旗の設定を新しい旗に適用
         dst.setRotationY(src.rotationY);
+        dst.setFlip(src.flipH, src.flipV);
         dst.setOpacity(src.opacity);
         dst.setPoleColor(src.poleColor);
         dst.setStandColor(src.standColor);
@@ -1405,9 +1530,10 @@ function bindUIEvents() {
 
     arScene?.setWindVisualizer(false);
     arScene?.setSelectedFlagMarker(null, false);
+    arScene?.flags?.forEach((f) => f.setDimmed(false));
 
     if (cameraViewport) {
-      cameraViewport.style.transform = 'translateY(0)';
+      cameraViewport.style.setProperty('--shift-y', '0px');
     }
 
     panelOpen = false;

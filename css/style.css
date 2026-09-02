@@ -400,12 +400,15 @@ footer p {
 /* プレビュー画面ビューポート */
 .camera-viewport {
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: -160px;
     width: 100%;
-    height: 100%;
+    height: calc(100% + 160px);
     overflow: hidden;
     transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-    transform: translateY(0);
+    transform: translateY(var(--shift-y, 0px));
     z-index: 1;
 }
 
@@ -420,8 +423,13 @@ footer p {
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.camera-video.zoomed {
+.camera-video.zoomed-2x {
     transform: scale(2);
+    transform-origin: center center;
+}
+
+.camera-video.zoomed-3x {
+    transform: scale(3);
     transform-origin: center center;
 }
 
@@ -435,7 +443,7 @@ footer p {
     touch-action: none;
 }
 
-/* 画面右上コントロール (カメラ切替・倍率変更) */
+/* 画面右上コントロール (倍率変更) */
 .ar-top-controls {
     position: fixed;
     top: 16px;
@@ -1440,6 +1448,68 @@ footer p {
     border-radius: 10px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     letter-spacing: 0.2px;
+}
+
+/* 旗の反転コントロール */
+.single-setting-controls-flip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+.flip-toggle-row {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    max-width: 380px;
+    justify-content: center;
+}
+
+.btn-flip-toggle {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #f1f3f5;
+    border: 1.5px solid var(--border-color);
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+.btn-flip-toggle:hover {
+    background: #e9ecef;
+    border-color: #ced4da;
+}
+
+.btn-flip-toggle:active {
+    transform: scale(0.97);
+}
+
+.btn-flip-toggle.active {
+    background: var(--primary-light);
+    border-color: var(--primary-color);
+    color: var(--primary-dark);
+    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.18);
+}
+
+.btn-flip-toggle .flip-icon {
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.btn-flip-toggle.active .flip-icon {
+    color: var(--primary-color);
 }
 
 /* 旗切り替え用アクションボタングループ (2段構成) */
