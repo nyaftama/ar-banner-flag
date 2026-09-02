@@ -3,7 +3,7 @@
  * Three.js シーン構築、カメラ・ジャイロ連動、ライティング、レンダリングループ
  */
 
-import { BannerFlag } from './banner-flag.js?v=0.91a';
+import { BannerFlag } from './banner-flag.js?v=0.92';
 
 export class ARScene {
   /**
@@ -36,6 +36,7 @@ export class ARScene {
     this._lightIntensity = 2.0;
     this._lightColor = new THREE.Color(0xffffff);
     this._shadowOpacity = 0.15;
+    this._alphaOffset = 0;
 
     this._initScene();
     this._initCamera();
@@ -149,6 +150,19 @@ export class ARScene {
     if (!this._camera) return;
     this._camera.fov = this._baseFov / zoomFactor;
     this._camera.updateProjectionMatrix();
+  }
+
+  /**
+   * 視点の基準（正面）をリセット
+   * 現在のデバイスの水平角（Yaw）を正面基準にキャリブレーション
+   */
+  resetViewOrientation() {
+    if (this._orientationEnabled && this._deviceAlpha !== undefined) {
+      this._alphaOffset = this._deviceAlpha;
+    } else if (this._camera) {
+      this._camera.position.set(0, 1.2, 0);
+      this._camera.rotation.set(0, 0, 0);
+    }
   }
 
   /**
@@ -441,7 +455,7 @@ export class ARScene {
    * Three.js 旧 DeviceOrientationControls のアルゴリズムを流用
    */
   _applyDeviceOrientation() {
-    const alpha = this._deviceAlpha;
+    const alpha = this._deviceAlpha - this._alphaOffset;
     const beta = this._deviceBeta;
     const gamma = this._deviceGamma;
     const orient = this._screenOrientation;

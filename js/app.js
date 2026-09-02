@@ -4,10 +4,10 @@
  * ダッシュボード設定 & 個別調整モード、倍率変更（1x/2x/3x）、フォトライブラリ
  */
 
-import { ARScene } from './ar-scene.js?v=0.91a';
-import { BannerFlag } from './banner-flag.js?v=0.91a';
-import { TouchControls } from './touch-controls.js?v=0.91a';
-import { captureComposite, downloadBlob } from './capture.js?v=0.91a';
+import { ARScene } from './ar-scene.js?v=0.92';
+import { BannerFlag } from './banner-flag.js?v=0.92';
+import { TouchControls } from './touch-controls.js?v=0.92';
+import { captureComposite, downloadBlob } from './capture.js?v=0.92';
 
 // ────────── 定数 ──────────
 const MAX_FLAGS = 3;
@@ -80,9 +80,16 @@ const cameraVideo = $('cameraVideo');
 const arCanvas = $('arCanvas');
 const flagTransformInfo = $('flagTransformInfo');
 
-// 画面右上コントロール
+// 画面下部コントロール (トーチ / 倍率 / 旗サイズ)
+const bottomControls = document.querySelector('.ar-bottom-controls');
+const torchToggleBtn = $('torchToggleBtn');
+const resetViewBtn = $('resetViewBtn');
 const zoomToggleBtn = $('zoomToggleBtn');
 const zoomLabel = $('zoomLabel');
+const flagScaleGroup = $('flagScaleGroup');
+const flagScaleDownBtn = $('flagScaleDownBtn');
+const flagScaleLabel = $('flagScaleLabel');
+const flagScaleUpBtn = $('flagScaleUpBtn');
 
 // 下部コントロール
 const galleryBtn = $('galleryBtn');
@@ -456,6 +463,8 @@ function updateDashboardUI() {
   } else {
     flagDashboardSection.style.display = 'none';
   }
+
+  updateFlagScaleControls();
 }
 
 // ────────── 個別調整モード (単一設定パネル) ──────────
@@ -555,6 +564,173 @@ function updateFlagMarkerVisibility() {
 }
 
 /**
+ * 画面下部コントロール (倍率変更等) の表示・非表示を制御
+ * 撮影画面（撮影ボタンがアクティブである状態）のみ表示
+ */
+function updateBottomControlsVisibility() {
+  if (!bottomControls) return;
+
+  const isCaptureReady = (
+    !panelOpen &&
+    !activeSettingKey &&
+    shutterBtn &&
+    !shutterBtn.disabled &&
+    shareModal?.style.display !== 'flex' &&
+    confirmLeaveModal?.style.display !== 'flex' &&
+    arView?.style.display !== 'none'
+  );
+
+  bottomControls.classList.toggle('controls-hidden', !isCaptureReady);
+}
+
+// ────────── 旗移動・拡縮 情報表示バッジ ──────────
+let transformHideTimer = null;
+
+function displayFlagTransformBadge(flagNum, x, z, scale) {
+  if (!flagTransformInfo) return;
+  if (transformHideTimer) {
+    clearTimeout(transformHideTimer);
+    transformHideTimer = null;
+  }
+  const pct = Math.round(scale * 100);
+  flagTransformInfo.textContent = `旗 ${flagNum} | 座標: X: ${x}m, Z: ${z}m | サイズ: ${pct}%`;
+  flagTransformInfo.style.display = 'block';
+  flagTransformInfo.style.opacity = '1';
+}
+
+function hideFlagTransformBadge(delay = 700) {
+  if (!flagTransformInfo) return;
+  if (transformHideTimer) clearTimeout(transformHideTimer);
+  transformHideTimer = setTimeout(() => {
+    flagTransformInfo.style.opacity = '0';
+    setTimeout(() => {
+      if (flagTransformInfo.style.opacity === '0') {
+        flagTransformInfo.style.display = 'none';
+      }
+    }, 200);
+  }, delay);
+}
+
+// ────────── トーチ (フラッシュ) 制御 ──────────
+let isTorchOn = false;
+
+const TORCH_ICON_OFF = `
+  <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+    <path d="M5.52.359A.5.5 0 0 1 6 0h4a.5.5 0 0 1 .474.658L8.694 6H12.5a.5.5 0 0 1 .395.807l-7 9a.5.5 0 0 1-.873-.454L6.823 9.5H3.5a.5.5 0 0 1-.48-.641zM6.374 1 4.21 8.5h2.615a.5.5 0 0 1 .478.647L6.005 13.5l5.228-6.723h-2.92a.5.5 0 0 1-.474-.658L9.626 1z"/>
+  </svg>
+`;
+
+const TORCH_ICON_ON = `
+  <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+    <path d="M5.52.359A.5.5 0 0 1 6 0h4a.5.5 0 0 1 .474.658L8.694 6H12.5a.5.5 0 0 1 .395.807l-7 9a.5.5 0 0 1-.873-.454L6.823 9.5H3.5a.5.5 0 0 1-.48-.641z"/>
+  </svg>
+`;
+
+function checkTorchSupport() {
+  if (!cameraVideo || !cameraVideo.srcObject) return false;
+  const track = cameraVideo.srcObject.getVideoTracks()[0];
+  if (!track || typeof track.getCapabilities !== 'function') return false;
+  const capabilities = track.getCapabilities();
+  return !!capabilities.torch;
+}
+
+function updateTorchUI() {
+  if (!torchToggleBtn) return;
+  const supported = checkTorchSupport();
+  torchToggleBtn.disabled = !supported;
+  torchToggleBtn.classList.toggle('active', isTorchOn && supported);
+  torchToggleBtn.innerHTML = (isTorchOn && supported) ? TORCH_ICON_ON : TORCH_ICON_OFF;
+}
+
+async function toggleTorch() {
+  if (!checkTorchSupport()) return;
+  const track = cameraVideo.srcObject.getVideoTracks()[0];
+  isTorchOn = !isTorchOn;
+
+  try {
+    await track.applyConstraints({
+      advanced: [{ torch: isTorchOn }],
+    });
+    updateTorchUI();
+  } catch (err) {
+    console.warn('トーチ制御エラー:', err);
+    isTorchOn = false;
+    updateTorchUI();
+  }
+}
+
+// ────────── 視点基準リセット ──────────
+
+function resetView() {
+  if (!arScene) return;
+  arScene.resetViewOrientation();
+  showToast('視点の基準をリセットしました');
+}
+
+// ────────── 旗サイズ変更コントロール ([-] 旗X [+]) ──────────
+
+function updateFlagScaleControls() {
+  if (!flagScaleGroup || !flagScaleLabel || !flagScaleDownBtn || !flagScaleUpBtn) return;
+
+  const flagCount = arScene?.flags?.length || 0;
+  if (flagCount === 0) {
+    flagScaleGroup.classList.add('disabled');
+    flagScaleDownBtn.disabled = true;
+    flagScaleUpBtn.disabled = true;
+    flagScaleLabel.textContent = '旗-';
+    return;
+  }
+
+  flagScaleGroup.classList.remove('disabled');
+
+  const activeIdx = (selectedFlagIndex >= 0 && selectedFlagIndex < flagCount)
+    ? selectedFlagIndex
+    : 0;
+
+  flagScaleLabel.textContent = `旗${activeIdx + 1}`;
+
+  const flag = arScene.flags[activeIdx];
+  const currentScale = flag ? flag.meshGroup.scale.x : 1.0;
+
+  flagScaleDownBtn.disabled = currentScale <= 0.301;
+  flagScaleUpBtn.disabled = currentScale >= 2.999;
+}
+
+function changeFlagScale(delta) {
+  if (!arScene || arScene.flags.length === 0) return;
+
+  const activeIdx = (selectedFlagIndex >= 0 && selectedFlagIndex < arScene.flags.length)
+    ? selectedFlagIndex
+    : 0;
+
+  if (selectedFlagIndex !== activeIdx) {
+    selectFlag(activeIdx);
+  }
+
+  const flag = arScene.flags[activeIdx];
+  if (!flag) return;
+
+  const currentScale = flag.meshGroup.scale.x;
+  const newScale = THREE.MathUtils.clamp(
+    Math.round((currentScale + delta) * 10) / 10,
+    0.3,
+    3.0
+  );
+
+  flag.meshGroup.scale.setScalar(newScale);
+  updateFlagScaleControls();
+
+  // 画面上に情報表示バッジを表示
+  displayFlagTransformBadge(
+    activeIdx + 1,
+    flag.meshGroup.position.x.toFixed(2),
+    flag.meshGroup.position.z.toFixed(2),
+    newScale
+  );
+  hideFlagTransformBadge(1000);
+}
+
+/**
  * 環境・ライティング設定を初期値にリセット
  */
 function resetEnvSettings() {
@@ -649,6 +825,7 @@ function openSwitchFlagPanel() {
     }
 
     updateFlagMarkerVisibility();
+    updateBottomControlsVisibility();
   });
 
   singleSettingTitle.textContent = '旗の切り替え';
@@ -690,6 +867,7 @@ function openSingleSetting(key) {
     }
 
     updateFlagMarkerVisibility();
+    updateBottomControlsVisibility();
   });
 
   // 風向き・風の強さ調整時の可視化エフェクト
@@ -956,6 +1134,7 @@ function closeSingleSetting() {
   activeSettingBackup = null;
   updateDashboardUI();
   updateFlagMarkerVisibility();
+  updateBottomControlsVisibility();
 }
 
 // ────────── フォトライブラリ UI 管理 ──────────
@@ -1016,10 +1195,12 @@ function openGalleryModal() {
   currentPhotoIndex = 0;
   renderGalleryModal();
   shareModal.style.display = 'flex';
+  updateBottomControlsVisibility();
 }
 
 function closeGalleryModal() {
   shareModal.style.display = 'none';
+  updateBottomControlsVisibility();
 }
 
 // ────────── カメラ映像の取得 ──────────
@@ -1043,6 +1224,7 @@ async function startCamera() {
     });
     cameraVideo.srcObject = stream;
     await cameraVideo.play();
+    updateTorchUI();
 
     applyZoom(currentZoom);
 
@@ -1126,44 +1308,24 @@ function initScene() {
     selectedFlagIndex = e.detail.index;
     updateDashboardUI();
     updateFlagMarkerVisibility();
+    updateFlagScaleControls();
   });
   arCanvas.addEventListener('flag-deselected', () => {
     selectedFlagIndex = -1;
     updateDashboardUI();
     updateFlagMarkerVisibility();
+    updateFlagScaleControls();
   });
 
   // 旗移動・拡縮中の情報表示バッジ
-  let transformHideTimer = null;
   arCanvas.addEventListener('flag-transform', (e) => {
-    if (!flagTransformInfo) return;
     const { index, position, scale } = e.detail;
-    if (transformHideTimer) {
-      clearTimeout(transformHideTimer);
-      transformHideTimer = null;
-    }
-
-    const flagNum = index + 1;
-    const x = position.x.toFixed(2);
-    const z = position.z.toFixed(2);
-    const pct = Math.round(scale * 100);
-
-    flagTransformInfo.textContent = `旗 ${flagNum} | 座標: X: ${x}m, Z: ${z}m | サイズ: ${pct}%`;
-    flagTransformInfo.style.display = 'block';
-    flagTransformInfo.style.opacity = '1';
+    displayFlagTransformBadge(index + 1, position.x.toFixed(2), position.z.toFixed(2), scale);
+    updateFlagScaleControls();
   });
 
   arCanvas.addEventListener('flag-transform-end', () => {
-    if (!flagTransformInfo) return;
-    if (transformHideTimer) clearTimeout(transformHideTimer);
-    transformHideTimer = setTimeout(() => {
-      flagTransformInfo.style.opacity = '0';
-      setTimeout(() => {
-        if (flagTransformInfo.style.opacity === '0') {
-          flagTransformInfo.style.display = 'none';
-        }
-      }, 200);
-    }, 700);
+    hideFlagTransformBadge(700);
   });
 }
 
@@ -1219,6 +1381,9 @@ async function startApp() {
   animate();
 
   updateDashboardUI();
+  updateFlagScaleControls();
+  updateTorchUI();
+  updateBottomControlsVisibility();
 
   if (!gyroOk) {
     showToast('ジャイロセンサーが無効です。カメラ映像のみで動作します。');
@@ -1230,6 +1395,10 @@ async function startApp() {
 function bindUIEvents() {
   startBtn.addEventListener('click', startApp);
   if (zoomToggleBtn) zoomToggleBtn.addEventListener('click', toggleZoom);
+  if (torchToggleBtn) torchToggleBtn.addEventListener('click', toggleTorch);
+  if (resetViewBtn) resetViewBtn.addEventListener('click', resetView);
+  if (flagScaleDownBtn) flagScaleDownBtn.addEventListener('click', () => changeFlagScale(-0.1));
+  if (flagScaleUpBtn) flagScaleUpBtn.addEventListener('click', () => changeFlagScale(0.1));
 
   window.addEventListener('resize', () => {
     if (!activeSettingKey) {
@@ -1243,6 +1412,7 @@ function bindUIEvents() {
     controlPanel.classList.toggle('expanded', panelOpen);
     shutterBtn.disabled = panelOpen; // 展開中はシャッターボタンを無効化
     updateFlagMarkerVisibility();    // 選択旗▼マーカーの表示連動
+    updateBottomControlsVisibility();
     if (panelOpen) {
       updateDashboardUI();
     }
@@ -1466,6 +1636,7 @@ function bindUIEvents() {
 
     shutterBtn.disabled = true;
     shutterBtn.classList.add('capturing');
+    updateBottomControlsVisibility();
 
     try {
       const blob = await captureComposite(cameraVideo, arScene.renderer, currentZoom);
@@ -1492,6 +1663,7 @@ function bindUIEvents() {
     setTimeout(() => {
       shutterBtn.disabled = false;
       shutterBtn.classList.remove('capturing');
+      updateBottomControlsVisibility();
     }, 600);
   });
 
@@ -1553,6 +1725,9 @@ function bindUIEvents() {
 
     arView.style.display = 'none';
     startScreen.style.display = 'block';
+    isTorchOn = false;
+    updateTorchUI();
+    updateBottomControlsVisibility();
 
     startBtn.disabled = false;
     startBtn.innerHTML = `
@@ -1574,6 +1749,7 @@ function bindUIEvents() {
         }
         if (confirmLeaveModal) {
           confirmLeaveModal.style.display = 'flex';
+          updateBottomControlsVisibility();
         }
       } else {
         exitToHome();
@@ -1592,6 +1768,7 @@ function bindUIEvents() {
   if (confirmLeaveCancelBtn) {
     confirmLeaveCancelBtn.addEventListener('click', () => {
       if (confirmLeaveModal) confirmLeaveModal.style.display = 'none';
+      updateBottomControlsVisibility();
     });
   }
 
@@ -1599,6 +1776,7 @@ function bindUIEvents() {
     confirmLeaveModal.addEventListener('click', (e) => {
       if (e.target === confirmLeaveModal) {
         confirmLeaveModal.style.display = 'none';
+        updateBottomControlsVisibility();
       }
     });
   }

@@ -27,15 +27,25 @@ export class TouchControls {
     this._lastTouch = { x: 0, y: 0 };
     this._lastPinchDist = 0;
 
-    // イベントリスナー登録
+    // イベントリスナー登録 (タッチ & マウス)
     this._onTouchStart = this._handleTouchStart.bind(this);
     this._onTouchMove = this._handleTouchMove.bind(this);
     this._onTouchEnd = this._handleTouchEnd.bind(this);
+
+    this._onMouseDown = this._handleMouseDown.bind(this);
+    this._onMouseMove = this._handleMouseMove.bind(this);
+    this._onMouseUp = this._handleMouseUp.bind(this);
+    this._onWheel = this._handleWheel.bind(this);
 
     canvas.addEventListener('touchstart', this._onTouchStart, { passive: false });
     canvas.addEventListener('touchmove', this._onTouchMove, { passive: false });
     canvas.addEventListener('touchend', this._onTouchEnd, { passive: false });
     canvas.addEventListener('touchcancel', this._onTouchEnd, { passive: false });
+
+    canvas.addEventListener('mousedown', this._onMouseDown);
+    window.addEventListener('mousemove', this._onMouseMove);
+    window.addEventListener('mouseup', this._onMouseUp);
+    canvas.addEventListener('wheel', this._onWheel, { passive: false });
   }
 
   /** 操作可能な対象オブジェクト（メッシュ）を登録 */
@@ -201,11 +211,103 @@ export class TouchControls {
     return Math.sqrt(dx * dx + dy * dy);
   }
 
+  // ────────── マウスイベントハンドラ (PC対応) ──────────
+
+  _handleMouseDown(e) {
+    if (!this._enabled || e.button !== 0) return; // 左クリックのみ
+    const ndc = this._getNDC(e);
+    this._raycaster.setFromCamera(new THREE.Vector2(ndc.x, ndc.y), this._camera);
+    const intersects = this._raycaster.intersectObjects(this._targets, true);
+
+    if (intersects.length > 0) {
+      let obj = intersects[0].object;
+      while (obj.parent && !obj.userData.isBannerFlag) {
+        obj = obj.parent;
+      }
+      if (obj.userData.isBannerFlag) {
+        this._selected = obj;
+        this._isDragging = true;
+        this._lastTouch = { x: e.clientX, y: e.clientY };
+        this._canvas.dispatchEvent(new CustomEvent('flag-selected', {
+          detail: { group: obj, index: obj.userData.flagIndex },
+        }));
+      }
+    } else {
+      // 空クリック → 選択解除
+      if (this._selected) {
+        this.deselect();
+      }
+    }
+  }
+
+  _handleMouseMove(e) {
+    if (!this._enabled || !this._isDragging || !this._selected) return;
+
+    const dx = e.clientX - this._lastTouch.x;
+    const dy = e.clientY - this._lastTouch.y;
+
+    const distance = this._camera.position.distanceTo(this._selected.position);
+    const factor = distance * 0.003;
+
+    const cameraDir = new THREE.Vector3();
+    this._camera.getWorldDirection(cameraDir);
+    const right = new THREE.Vector3().crossVectors(cameraDir, this._camera.up).normalize();
+    const forward = new THREE.Vector3().crossVectors(this._camera.up, right).normalize();
+
+    this._selected.position.addScaledVector(right, dx * factor);
+    this._selected.position.addScaledVector(forward, -dy * factor);
+
+    this._lastTouch = { x: e.clientX, y: e.clientY };
+
+    this._canvas.dispatchEvent(new CustomEvent('flag-transform', {
+      detail: {
+        group: this._selected,
+        index: this._selected.userData.flagIndex,
+        position: this._selected.position,
+        scale: this._selected.scale.x,
+      },
+    }));
+  }
+
+  _handleMouseUp(e) {
+    if (this._isDragging) {
+      this._isDragging = false;
+      this._canvas.dispatchEvent(new CustomEvent('flag-transform-end'));
+    }
+  }
+
+  _handleWheel(e) {
+    if (!this._enabled || !this._selected) return;
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.05 : 0.95;
+    const newScale = THREE.MathUtils.clamp(
+      this._selected.scale.x * factor,
+      0.3,
+      3.0
+    );
+    this._selected.scale.setScalar(newScale);
+
+    this._canvas.dispatchEvent(new CustomEvent('flag-transform', {
+      detail: {
+        group: this._selected,
+        index: this._selected.userData.flagIndex,
+        position: this._selected.position,
+        scale: this._selected.scale.x,
+      },
+    }));
+    this._canvas.dispatchEvent(new CustomEvent('flag-transform-end'));
+  }
+
   /** リスナーを解除 */
   dispose() {
     this._canvas.removeEventListener('touchstart', this._onTouchStart);
     this._canvas.removeEventListener('touchmove', this._onTouchMove);
     this._canvas.removeEventListener('touchend', this._onTouchEnd);
     this._canvas.removeEventListener('touchcancel', this._onTouchEnd);
+
+    this._canvas.removeEventListener('mousedown', this._onMouseDown);
+    window.removeEventListener('mousemove', this._onMouseMove);
+    window.removeEventListener('mouseup', this._onMouseUp);
+    this._canvas.removeEventListener('wheel', this._onWheel);
   }
 }
