@@ -4,10 +4,10 @@
  * ダッシュボード設定 & 個別調整モード、倍率変更（1x/2x/3x）、フォトライブラリ
  */
 
-import { ARScene } from './ar-scene.js?v=0.92a';
-import { BannerFlag } from './banner-flag.js?v=0.92a';
-import { TouchControls } from './touch-controls.js?v=0.92a';
-import { captureComposite, downloadBlob } from './capture.js?v=0.92a';
+import { ARScene } from './ar-scene.js?v=0.92b';
+import { BannerFlag } from './banner-flag.js?v=0.92b';
+import { TouchControls } from './touch-controls.js?v=0.92b';
+import { captureComposite, downloadBlob } from './capture.js?v=0.92b';
 
 // ────────── 定数 ──────────
 const MAX_FLAGS = 3;
