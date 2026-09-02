@@ -9,20 +9,20 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
 
-    <title>のぼり旗ARカメラ | 疑似WebAR のぼり旗シミュレーター</title>
+    <title>ARのぼり旗カメラ | 疑似WebAR のぼり旗シミュレーター</title>
     <meta name="description" content="スマートフォンの標準ブラウザで動作するマーカーレス疑似WebARカメラです。お手持ちの画像でのぼり旗を作成し、現実空間に配置・撮影できます。">
 
-    <meta property="og:title" content="のぼり旗ARカメラ">
+    <meta property="og:title" content="ARのぼり旗カメラ">
     <meta property="og:description" content="スマホのカメラ映像とジャイロセンサーで、お手持ちの画像を使ったのぼり旗を空間に配置・撮影できる疑似WebARカメラです。">
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="のぼり旗ARカメラ">
+    <meta property="og:site_name" content="ARのぼり旗カメラ">
 
     <meta name="twitter:card" content="summary">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="css/style.css?v=0.91">
+    <link rel="stylesheet" href="css/style.css?v=0.91a">
 </head>
 
 <body>
@@ -44,10 +44,10 @@
 
             <!-- Title Header -->
             <h1 class="main-title">
-                のぼり旗ARカメラ<br>
-                <span class="sub-title">疑似WebAR のぼり旗シミュレーター</span>
+                ARのぼり旗カメラ<br>
+                <span class="sub-title">WebARのぼり旗シミュレーター</span>
             </h1>
-            <div class="eng-title">AR BANNER FLAG PLACEMENT TOOL</div>
+            <div class="eng-title">AR BANNER FLAG CAMERA</div>
 
             <div class="tool-links">
                 <a href="https://nyaftama.github.io/uma-ouen-baken/" target="_blank" rel="noopener noreferrer"
@@ -515,7 +515,7 @@
             <h3 class="modal-title" id="galleryModalTitle">撮影した写真</h3>
             <p class="modal-desc" id="galleryModalDesc">
                 画像を長押し（またはダウンロードボタン）で保存できます。<br>
-                <span style="color: var(--primary-color); font-weight: bold;">※最大10枚まで一時保存されます。</span>
+                <span style="color: var(--primary-color); font-weight: bold;">Xでシェアする際は、保存した画像を添付してください。</span>
             </p>
 
             <!-- 写真が0枚の場合 -->
@@ -537,6 +537,10 @@
                 <!-- メインプレビュー画像 -->
                 <div class="modal-image-wrapper">
                     <img id="shareImagePreview" src="" alt="撮影写真プレビュー">
+                    <button type="button" id="deletePhotoBtn" class="btn btn-danger btn-small btn-image-delete"
+                        title="この写真を削除">
+                        削除
+                    </button>
                 </div>
 
                 <div class="modal-actions">
@@ -549,9 +553,13 @@
                         </svg>
                         <span>ダウンロード</span>
                     </button>
-                    <button type="button" id="deletePhotoBtn" class="btn btn-danger btn-modal-delete" title="この写真を削除">
-                        削除
-                    </button>
+                    <a id="twitterShareBtn" class="btn btn-twitter" href="#" target="_blank" rel="noopener noreferrer">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                        </svg>
+                        <span>Xでシェア</span>
+                    </a>
                 </div>
             </div>
 
@@ -573,7 +581,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <!-- アプリケーション (ES Module) -->
-    <script type="module" src="js/app.js?v=0.91"></script>
+    <script type="module" src="js/app.js?v=0.91a"></script>
 
 </body>
 

@@ -1,13 +1,13 @@
 /**
  * app.js
- * AR のぼり旗カメラ - アプリケーション エントリポイント
+ * ARのぼり旗カメラ - アプリケーション エントリポイント
  * ダッシュボード設定 & 個別調整モード、倍率変更（1x/2x/3x）、フォトライブラリ
  */
 
-import { ARScene } from './ar-scene.js?v=0.91';
-import { BannerFlag } from './banner-flag.js?v=0.91';
-import { TouchControls } from './touch-controls.js?v=0.91';
-import { captureComposite, downloadBlob } from './capture.js?v=0.91';
+import { ARScene } from './ar-scene.js?v=0.91a';
+import { BannerFlag } from './banner-flag.js?v=0.91a';
+import { TouchControls } from './touch-controls.js?v=0.91a';
+import { captureComposite, downloadBlob } from './capture.js?v=0.91a';
 
 // ────────── 定数 ──────────
 const MAX_FLAGS = 3;
@@ -1003,6 +1003,13 @@ function renderGalleryModal() {
 
   // 選択中写真のメインプレビュー
   shareImagePreview.src = capturedPhotos[currentPhotoIndex].url;
+
+  // X（Twitter）シェア用 URL の更新
+  const twitterShareBtn = $('twitterShareBtn');
+  if (twitterShareBtn) {
+    const tweetText = encodeURIComponent('#ARのぼり旗カメラ\n');
+    twitterShareBtn.href = `https://twitter.com/intent/tweet?text=${tweetText}`;
+  }
 }
 
 function openGalleryModal() {

@@ -863,6 +863,7 @@ footer p {
 }
 
 .modal-image-wrapper {
+    position: relative;
     width: 100%;
     background: #f0f0f0;
     border-radius: 8px;
@@ -885,21 +886,52 @@ footer p {
     object-fit: contain;
 }
 
+.modal-image-wrapper .btn-image-delete {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 5;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
 .modal-actions {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 10px;
     width: 100%;
     flex-shrink: 0;
 }
 
 .modal-actions .btn {
-    flex: 1;
+    width: 100%;
 }
 
-.btn-modal-delete {
-    max-width: 80px;
-    padding: 8px 10px;
-    font-size: 0.85rem;
+.btn-twitter {
+    background: #000000;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    border-radius: 8px;
+    transition: var(--transition);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.btn-twitter:hover {
+    background: #222222;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.btn-twitter:active {
+    transform: scale(0.98);
 }
 
 .modal-actions-secondary {
