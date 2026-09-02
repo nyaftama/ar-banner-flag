@@ -545,6 +545,7 @@ footer p {
     padding: 0 4px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     box-sizing: border-box;
+    pointer-events: auto;
     user-select: none;
     -webkit-user-select: none;
     transition: var(--transition);
@@ -556,8 +557,8 @@ footer p {
 }
 
 .btn-scale-step {
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     background: transparent;
     border: none;

@@ -4,10 +4,10 @@
  * ダッシュボード設定 & 個別調整モード、倍率変更（1x/2x/3x）、フォトライブラリ
  */
 
-import { ARScene } from './ar-scene.js?v=0.92';
-import { BannerFlag } from './banner-flag.js?v=0.92';
-import { TouchControls } from './touch-controls.js?v=0.92';
-import { captureComposite, downloadBlob } from './capture.js?v=0.92';
+import { ARScene } from './ar-scene.js?v=0.92a';
+import { BannerFlag } from './banner-flag.js?v=0.92a';
+import { TouchControls } from './touch-controls.js?v=0.92a';
+import { captureComposite, downloadBlob } from './capture.js?v=0.92a';
 
 // ────────── 定数 ──────────
 const MAX_FLAGS = 3;
@@ -690,7 +690,7 @@ function updateFlagScaleControls() {
   flagScaleLabel.textContent = `旗${activeIdx + 1}`;
 
   const flag = arScene.flags[activeIdx];
-  const currentScale = flag ? flag.meshGroup.scale.x : 1.0;
+  const currentScale = flag ? flag.group.scale.x : 1.0;
 
   flagScaleDownBtn.disabled = currentScale <= 0.301;
   flagScaleUpBtn.disabled = currentScale >= 2.999;
@@ -703,28 +703,31 @@ function changeFlagScale(delta) {
     ? selectedFlagIndex
     : 0;
 
-  if (selectedFlagIndex !== activeIdx) {
-    selectFlag(activeIdx);
-  }
-
   const flag = arScene.flags[activeIdx];
   if (!flag) return;
 
-  const currentScale = flag.meshGroup.scale.x;
+  if (selectedFlagIndex !== activeIdx) {
+    selectedFlagIndex = activeIdx;
+    if (touchControls) {
+      touchControls.select(flag.group);
+    }
+  }
+
+  const currentScale = flag.group.scale.x;
   const newScale = THREE.MathUtils.clamp(
     Math.round((currentScale + delta) * 10) / 10,
     0.3,
     3.0
   );
 
-  flag.meshGroup.scale.setScalar(newScale);
+  flag.group.scale.setScalar(newScale);
   updateFlagScaleControls();
 
   // 画面上に情報表示バッジを表示
   displayFlagTransformBadge(
     activeIdx + 1,
-    flag.meshGroup.position.x.toFixed(2),
-    flag.meshGroup.position.z.toFixed(2),
+    flag.group.position.x.toFixed(2),
+    flag.group.position.z.toFixed(2),
     newScale
   );
   hideFlagTransformBadge(1000);

@@ -78,6 +78,15 @@ export class TouchControls {
     return this._isDragging || this._isPinching;
   }
 
+  /** プログラムから旗を選択 */
+  select(group) {
+    if (!group) return;
+    this._selected = group;
+    this._canvas.dispatchEvent(new CustomEvent('flag-selected', {
+      detail: { group, index: group.userData.flagIndex },
+    }));
+  }
+
   /** 選択をリセット */
   deselect() {
     this._selected = null;
