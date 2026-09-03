@@ -22,7 +22,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="css/style.css?v=0.92b">
+    <link rel="stylesheet" href="css/style.css?v=0.93">
 </head>
 
 <body>
@@ -33,7 +33,7 @@
             <!-- Header Meta -->
             <div class="header-meta">
                 <div class="version-group">
-                    <span class="version-badge">v0.92</span>
+                    <span class="version-badge">v0.93</span>
                     <a href="https://github.com/nyaftama/ar-banner-flag#%E6%9B%B4%E6%96%B0%E5%B1%A5%E6%AD%B4"
                         target="_blank" rel="noopener noreferrer" class="changelog-link">更新履歴</a>
                 </div>
@@ -602,6 +602,17 @@
                     </button>
                 </div>
 
+                <!-- 保存フォールバック案内ヒント -->
+                <p class="modal-save-hint">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    <span>保存できない場合は、上の画像を長押しして保存してください</span>
+                </p>
+
                 <div class="modal-actions">
                     <button type="button" id="downloadModalBtn" class="btn btn-primary">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -640,7 +651,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <!-- アプリケーション (ES Module) -->
-    <script type="module" src="js/app.js?v=0.92b"></script>
+    <script type="module" src="js/app.js?v=0.93"></script>
 
 </body>
 

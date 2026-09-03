@@ -4,10 +4,10 @@
  * ダッシュボード設定 & 個別調整モード、倍率変更（1x/2x/3x）、フォトライブラリ
  */
 
-import { ARScene } from './ar-scene.js?v=0.92b';
-import { BannerFlag } from './banner-flag.js?v=0.92b';
-import { TouchControls } from './touch-controls.js?v=0.92b';
-import { captureComposite, downloadBlob } from './capture.js?v=0.92b';
+import { ARScene } from './ar-scene.js?v=0.93';
+import { BannerFlag } from './banner-flag.js?v=0.93';
+import { TouchControls } from './touch-controls.js?v=0.93';
+import { captureComposite, downloadBlob } from './capture.js?v=0.93';
 
 // ────────── 定数 ──────────
 const MAX_FLAGS = 3;
@@ -1677,11 +1677,41 @@ function bindUIEvents() {
     if (e.target === shareModal) closeGalleryModal();
   });
 
-  downloadModalBtn.addEventListener('click', () => {
+  downloadModalBtn.addEventListener('click', async () => {
     if (capturedPhotos.length === 0 || !capturedPhotos[currentPhotoIndex]) return;
     const photo = capturedPhotos[currentPhotoIndex];
-    downloadBlob(photo.blob, `ar-banner-flag-${photo.timestamp}.png`);
-    showToast('画像を端末にダウンロードしました');
+    const filename = `ar-banner-flag-${photo.timestamp}.png`;
+
+    // Web Share API（ファイル共有）が利用可能な場合は共有メニューを優先（アプリ内ブラウザ等でも「画像を保存」可能）
+    let shared = false;
+    if (navigator.canShare && typeof File !== 'undefined') {
+      try {
+        const file = new File([photo.blob], filename, { type: 'image/png' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: 'ARのぼり旗写真',
+          });
+          shared = true;
+          showToast('共有メニューを開きました');
+          return;
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          return; // ユーザーが明示的に共有をキャンセルした場合
+        }
+        console.warn('Web Share共有スキップ、通常ダウンロードへ:', err);
+      }
+    }
+
+    if (!shared) {
+      downloadBlob(photo.blob, filename);
+      if (isAppInBrowser()) {
+        showToast('保存できない場合はプレビュー画像を長押しして保存してください', 4500);
+      } else {
+        showToast('画像を端末にダウンロードしました');
+      }
+    }
   });
 
   deletePhotoBtn.addEventListener('click', () => {
@@ -1785,10 +1815,28 @@ function bindUIEvents() {
   }
 }
 
+// ────────── アプリ内ブラウザー自動検知 ──────────
+
+function isAppInBrowser() {
+  const ua = navigator.userAgent || navigator.vendor || window.opera || '';
+  return /FBAN|FBAV|Twitter|Instagram|Line|Threads|TikTok|MicroMessenger|Snapchat/i.test(ua) ||
+    (typeof window.webkit !== 'undefined' && !/Safari/i.test(ua)) ||
+    (/Android/i.test(ua) && /Version\/[0-9\.]+/i.test(ua) && /Chrome/i.test(ua));
+}
+
+function checkInAppBrowser() {
+  if (isAppInBrowser()) {
+    setTimeout(() => {
+      showToast('アプリ内ブラウザーでは一部機能が制限される場合があります', 4000);
+    }, 600);
+  }
+}
+
 // ────────── 初期化 ──────────
 
 document.addEventListener('DOMContentLoaded', () => {
   bindUIEvents();
   updateFlagCount();
   updateGalleryBadge();
+  checkInAppBrowser();
 });

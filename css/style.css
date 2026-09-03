@@ -1023,6 +1023,25 @@ footer p {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
+/* 写真保存フォールバック案内 */
+.modal-save-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin: 6px 0 12px 0;
+    text-align: center;
+    line-height: 1.4;
+    flex-shrink: 0;
+}
+
+.modal-save-hint svg {
+    stroke: var(--primary-color);
+    flex-shrink: 0;
+}
+
 .modal-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
