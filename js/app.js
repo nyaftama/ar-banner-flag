@@ -4,10 +4,10 @@
  * ダッシュボード設定 & 個別調整モード、倍率変更（1x/2x/3x）、フォトライブラリ
  */
 
-import { ARScene } from './ar-scene.js?v=0.93b';
-import { BannerFlag } from './banner-flag.js?v=0.93b';
-import { TouchControls } from './touch-controls.js?v=0.93b';
-import { captureComposite, downloadBlob } from './capture.js?v=0.93b';
+import { ARScene } from './ar-scene.js?v=0.93c';
+import { BannerFlag } from './banner-flag.js?v=0.93c';
+import { TouchControls } from './touch-controls.js?v=0.93c';
+import { captureComposite, downloadBlob } from './capture.js?v=0.93c';
 
 // ────────── 定数 ──────────
 const MAX_FLAGS = 3;
@@ -516,9 +516,15 @@ function updateDashboardUI() {
   // 2. 旗設定
   flagDashboardSection.style.display = 'block';
 
+  const flagCount = arScene ? arScene.flags.length : 0;
+  // 旗が1つ以上あるのに未選択の場合は、先頭の旗を選択
+  if (flagCount > 0 && (selectedFlagIndex < 0 || selectedFlagIndex >= flagCount)) {
+    selectedFlagIndex = 0;
+  }
+
   if (selectedFlagIndex >= 0 && arScene && arScene.flags[selectedFlagIndex]) {
     const flag = arScene.flags[selectedFlagIndex];
-    selectedFlagTitle.textContent = `選択中の旗 ${selectedFlagIndex + 1}`;
+    selectedFlagTitle.textContent = `旗 ${selectedFlagIndex + 1} の設定`;
 
     if (flagDashboardGrid) flagDashboardGrid.style.display = 'grid';
     if (deleteFlagBtn) deleteFlagBtn.style.display = 'inline-flex';
@@ -549,7 +555,7 @@ function updateDashboardUI() {
     $('tileValStandColor').textContent = flag.standColor.toUpperCase();
   } else {
     // 旗が0件（初期状態）の場合: ヘッダーのみ表示し、「サンプルを追加」ボタンを表示
-    selectedFlagTitle.textContent = '選択中の旗';
+    selectedFlagTitle.textContent = '旗の設定';
 
     if (flagDashboardGrid) flagDashboardGrid.style.display = 'none';
     if (switchFlagBtn) switchFlagBtn.style.display = 'none';
@@ -1412,7 +1418,14 @@ function initScene() {
     updateFlagScaleControls();
   });
   arCanvas.addEventListener('flag-deselected', () => {
-    selectedFlagIndex = -1;
+    // 旗が1つ以上存在する場合は選択状態を維持し、0件の時のみ未選択にする
+    if (arScene && arScene.flags.length > 0) {
+      if (selectedFlagIndex < 0 || selectedFlagIndex >= arScene.flags.length) {
+        selectedFlagIndex = 0;
+      }
+    } else {
+      selectedFlagIndex = -1;
+    }
     updateDashboardUI();
     updateFlagMarkerVisibility();
     updateFlagScaleControls();

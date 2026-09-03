@@ -3,7 +3,7 @@
  * Three.js シーン構築、カメラ・ジャイロ連動、ライティング、レンダリングループ
  */
 
-import { BannerFlag } from './banner-flag.js?v=0.93b';
+import { BannerFlag } from './banner-flag.js?v=0.93c';
 
 export class ARScene {
   /**

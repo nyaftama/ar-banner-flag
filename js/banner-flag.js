@@ -3,7 +3,7 @@
  * のぼり旗3Dオブジェクト（旗メッシュ + ポール + スタンド）
  */
 
-import { createWindMaterial } from './wind-shader.js?v=0.93b';
+import { createWindMaterial } from './wind-shader.js?v=0.93c';
 
 /** のぼり旗の基準定数 */
 const FLAG_BASE_HEIGHT = 1.8; // 基準の高さ 180cm

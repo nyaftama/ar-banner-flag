@@ -126,12 +126,8 @@ export class TouchControls {
             detail: { group: obj, index: obj.userData.flagIndex },
           }));
         }
-      } else {
-        // 空タップ → 選択解除
-        if (this._selected) {
-          this.deselect();
-        }
       }
+      // 空タップ時も直前の旗の選択状態を維持する
     } else if (e.touches.length === 2 && this._selected) {
       e.preventDefault();
       this._isPinching = true;
@@ -241,12 +237,8 @@ export class TouchControls {
           detail: { group: obj, index: obj.userData.flagIndex },
         }));
       }
-    } else {
-      // 空クリック → 選択解除
-      if (this._selected) {
-        this.deselect();
-      }
     }
+    // 空クリック時も直前の旗の選択状態を維持する
   }
 
   _handleMouseMove(e) {
