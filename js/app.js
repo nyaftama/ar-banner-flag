@@ -4,10 +4,10 @@
  * ダッシュボード設定 & 個別調整モード、倍率変更（1x/2x/3x）、フォトライブラリ
  */
 
-import { ARScene } from './ar-scene.js?v=0.93a';
-import { BannerFlag } from './banner-flag.js?v=0.93a';
-import { TouchControls } from './touch-controls.js?v=0.93a';
-import { captureComposite, downloadBlob } from './capture.js?v=0.93a';
+import { ARScene } from './ar-scene.js?v=0.93b';
+import { BannerFlag } from './banner-flag.js?v=0.93b';
+import { TouchControls } from './touch-controls.js?v=0.93b';
+import { captureComposite, downloadBlob } from './capture.js?v=0.93b';
 
 // ────────── 定数 ──────────
 const MAX_FLAGS = 3;
@@ -105,9 +105,11 @@ const controlPanel = $('controlPanel');
 
 // ダッシュボード要素
 const flagDashboardSection = $('flagDashboardSection');
+const flagDashboardGrid = $('flagDashboardGrid');
 const selectedFlagTitle = $('selectedFlagTitle');
 const switchFlagBtn = $('switchFlagBtn');
 const deleteFlagBtn = $('deleteFlagBtn');
+const addSampleFlagBtn = $('addSampleFlagBtn');
 const resetEnvSettingsBtn = $('resetEnvSettingsBtn');
 const backToHomeBtn = $('backToHomeBtn');
 
@@ -197,6 +199,64 @@ function updateFlagCount() {
     flagCountLabel.classList.remove('badge-max');
     addFlagBtn.disabled = false;
   }
+}
+
+/**
+ * サンプル旗のテクスチャ（1:3 アスペクト比、白と --primary-color のチェッカー模様）を Canvas で生成
+ * @returns {string} Data URL (image/png)
+ */
+function createSampleFlagDataUrl() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 600;
+  canvas.height = 1800;
+  const ctx = canvas.getContext('2d');
+
+  const primaryColor = getComputedStyle(document.documentElement)
+    .getPropertyValue('--primary-color').trim() || '#2e7d32';
+
+  const cols = 4;
+  const rows = 12;
+  const cellW = canvas.width / cols;
+  const cellH = canvas.height / rows;
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const isPrimary = (r + c) % 2 === 0;
+      ctx.fillStyle = isPrimary ? primaryColor : '#ffffff';
+      ctx.fillRect(c * cellW, r * cellH, cellW, cellH);
+    }
+  }
+
+  return canvas.toDataURL('image/png');
+}
+
+/**
+ * URL (Object URL または Data URL) から旗を追加する共通処理
+ * @param {string} url - 画像 URL
+ * @param {string} [successToast] - 成功時のトースト文言
+ */
+async function addFlagFromUrl(url, successToast = '') {
+  if (!arScene) return;
+  if (arScene.flags.length >= MAX_FLAGS) {
+    showToast(`のぼり旗は最大${MAX_FLAGS}セットまで配置できます。`);
+    return;
+  }
+
+  const index = arScene.flags.length;
+  const flag = new BannerFlag(index);
+  await flag.loadFlagTexture(url);
+
+  arScene.addFlag(flag);
+
+  flag.group.traverse((child) => {
+    if (child.isMesh) touchControls.addTarget(child);
+  });
+
+  selectedFlagIndex = index;
+  updateFlagCount();
+  updateDashboardUI();
+  updateFlagMarkerVisibility();
+  showToast(successToast || `のぼり旗 ${index + 1} を配置しました。`);
 }
 
 // ────────── 動的 SVG アイコン生成 ──────────
@@ -454,13 +514,19 @@ function updateDashboardUI() {
   $('tileValShadowIntensity').textContent = `${envSettings.shadowIntensity}%`;
 
   // 2. 旗設定
+  flagDashboardSection.style.display = 'block';
+
   if (selectedFlagIndex >= 0 && arScene && arScene.flags[selectedFlagIndex]) {
     const flag = arScene.flags[selectedFlagIndex];
-    flagDashboardSection.style.display = 'block';
     selectedFlagTitle.textContent = `選択中の旗 ${selectedFlagIndex + 1}`;
+
+    if (flagDashboardGrid) flagDashboardGrid.style.display = 'grid';
+    if (deleteFlagBtn) deleteFlagBtn.style.display = 'inline-flex';
+    if (addSampleFlagBtn) addSampleFlagBtn.style.display = 'none';
 
     // 旗が2つ以上で切替ボタンを有効化
     if (switchFlagBtn) {
+      switchFlagBtn.style.display = 'inline-flex';
       switchFlagBtn.disabled = (!arScene || arScene.flags.length <= 1);
     }
 
@@ -482,7 +548,13 @@ function updateDashboardUI() {
     $('tileIconStandColor').innerHTML = getColorSvg(flag.standColor);
     $('tileValStandColor').textContent = flag.standColor.toUpperCase();
   } else {
-    flagDashboardSection.style.display = 'none';
+    // 旗が0件（初期状態）の場合: ヘッダーのみ表示し、「サンプルを追加」ボタンを表示
+    selectedFlagTitle.textContent = '選択中の旗';
+
+    if (flagDashboardGrid) flagDashboardGrid.style.display = 'none';
+    if (switchFlagBtn) switchFlagBtn.style.display = 'none';
+    if (deleteFlagBtn) deleteFlagBtn.style.display = 'none';
+    if (addSampleFlagBtn) addSampleFlagBtn.style.display = 'inline-flex';
   }
 
   updateFlagScaleControls();
@@ -1618,21 +1690,7 @@ function bindUIEvents() {
 
     try {
       const url = URL.createObjectURL(file);
-      const index = arScene.flags.length;
-      const flag = new BannerFlag(index);
-      await flag.loadFlagTexture(url);
-
-      arScene.addFlag(flag);
-
-      flag.group.traverse((child) => {
-        if (child.isMesh) touchControls.addTarget(child);
-      });
-
-      selectedFlagIndex = index;
-      updateFlagCount();
-      updateDashboardUI();
-      showToast(`のぼり旗 ${index + 1} を配置しました。`);
-
+      await addFlagFromUrl(url);
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error('旗テクスチャ読み込みエラー:', err);
@@ -1641,6 +1699,19 @@ function bindUIEvents() {
 
     flagFileInput.value = '';
   });
+
+  // サンプル旗追加ボタン
+  if (addSampleFlagBtn) {
+    addSampleFlagBtn.addEventListener('click', async () => {
+      try {
+        const sampleUrl = createSampleFlagDataUrl();
+        await addFlagFromUrl(sampleUrl, 'サンプル旗を配置しました。');
+      } catch (err) {
+        console.error('サンプル旗作成エラー:', err);
+        showToast('サンプル旗の作成に失敗しました。');
+      }
+    });
+  }
 
   // 旗削除
   deleteFlagBtn.addEventListener('click', () => {
@@ -1651,7 +1722,7 @@ function bindUIEvents() {
         if (child.isMesh) touchControls.removeTarget(child);
       });
       arScene.removeFlag(selectedFlagIndex);
-      selectedFlagIndex = -1;
+      selectedFlagIndex = arScene.flags.length > 0 ? 0 : -1;
       updateFlagCount();
       updateDashboardUI();
       updateFlagMarkerVisibility();

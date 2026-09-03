@@ -22,7 +22,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="css/style.css?v=0.93a">
+    <link rel="stylesheet" href="css/style.css?v=0.93b">
 </head>
 
 <body>
@@ -309,20 +309,23 @@
             <div id="panelExpanded" class="panel-expanded">
 
                 <!-- ─── 旗設定グリッド (旗選択時のみ表示) ─── -->
-                <div id="flagDashboardSection" class="dashboard-section" style="display: none;">
+                <div id="flagDashboardSection" class="dashboard-section">
                     <div class="dashboard-section-header">
                         <div class="dashboard-section-title-group">
                             <span class="dashboard-section-title" id="selectedFlagTitle">選択中の旗</span>
                             <button type="button" id="switchFlagBtn" class="btn btn-small btn-switch-flag"
-                                title="別の旗に切り替え" disabled>
+                                title="別の旗に切り替え" style="display: none;" disabled>
                                 切替
                             </button>
                         </div>
-                        <button type="button" id="deleteFlagBtn" class="btn btn-danger btn-small">
+                        <button type="button" id="addSampleFlagBtn" class="btn btn-small btn-reset" title="サンプルの旗を追加">
+                            サンプルを追加
+                        </button>
+                        <button type="button" id="deleteFlagBtn" class="btn btn-danger btn-small" style="display: none;">
                             削除
                         </button>
                     </div>
-                    <div class="dashboard-grid">
+                    <div class="dashboard-grid" id="flagDashboardGrid" style="display: none;">
                         <!-- 旗の向き (Y軸回転) -->
                         <button type="button" class="dashboard-tile" data-setting="flagRotation">
                             <div class="tile-icon" id="tileIconFlagRotation"></div>
@@ -659,7 +662,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <!-- アプリケーション (ES Module) -->
-    <script type="module" src="js/app.js?v=0.93a"></script>
+    <script type="module" src="js/app.js?v=0.93b"></script>
 
 </body>
 
