@@ -22,7 +22,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="css/style.css?v=0.93">
+    <link rel="stylesheet" href="css/style.css?v=0.93a">
 </head>
 
 <body>
@@ -570,12 +570,21 @@
          フォトライブラリ モーダル (Save / Share Modal)
          ============================================================ -->
     <div id="shareModal" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <h3 class="modal-title" id="galleryModalTitle">撮影した写真</h3>
-            <p class="modal-desc" id="galleryModalDesc">
-                画像を長押し（またはダウンロードボタン）で保存できます。<br>
-                <span style="color: var(--primary-color); font-weight: bold;">Xでシェアする際は、保存した画像を添付してください。</span>
-            </p>
+        <div class="modal-content modal-gallery-content">
+            <!-- モーダルヘッダー (タイトル + 枚数バッジ + 閉じるボタン) -->
+            <div class="modal-gallery-header">
+                <div class="modal-gallery-title-group">
+                    <h3 class="modal-title" id="galleryModalTitle">撮影した写真</h3>
+                    <span class="modal-gallery-badge" id="galleryModalBadge">0 / 0 枚</span>
+                </div>
+                <button type="button" id="closeModalBtn" class="btn-modal-close" title="閉じる">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
 
             <!-- 写真が0枚の場合 -->
             <div id="galleryEmptyState" class="gallery-empty-state" style="display: none;">
@@ -590,29 +599,34 @@
 
             <!-- 写真がある場合の表示 -->
             <div id="galleryContentArea" class="gallery-content-area">
-                <!-- サムネイル一覧 (横スクロール) -->
-                <div id="galleryThumbnails" class="gallery-thumbnails-strip"></div>
-
                 <!-- メインプレビュー画像 -->
                 <div class="modal-image-wrapper">
                     <img id="shareImagePreview" src="" alt="撮影写真プレビュー">
-                    <button type="button" id="deletePhotoBtn" class="btn btn-danger btn-small btn-image-delete"
-                        title="この写真を削除">
-                        削除
+                    <button type="button" id="deletePhotoBtn" class="btn-image-delete" title="この写真を削除">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                            </path>
+                        </svg>
                     </button>
                 </div>
 
-                <!-- 保存フォールバック案内ヒント -->
-                <p class="modal-save-hint">
+                <!-- サムネイル一覧 (横スクロール) -->
+                <div id="galleryThumbnails" class="gallery-thumbnails-strip"></div>
+
+                <!-- 案内・注意書きバー -->
+                <div class="modal-notice-box">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10"></circle>
                         <line x1="12" y1="16" x2="12" y2="12"></line>
                         <line x1="12" y1="8" x2="12.01" y2="8"></line>
                     </svg>
-                    <span>保存できない場合は、上の画像を長押しして保存してください</span>
-                </p>
+                    <span>画像を長押し・右クリックでも保存できます。X（Twitter）でシェアする際には、保存した画像を手動で添付してください。</span>
+                </div>
 
+                <!-- アクションボタン -->
                 <div class="modal-actions">
                     <button type="button" id="downloadModalBtn" class="btn btn-primary">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -632,12 +646,6 @@
                     </a>
                 </div>
             </div>
-
-            <div class="modal-actions-secondary">
-                <button type="button" id="closeModalBtn" class="btn btn-secondary" style="width: 100%;">
-                    閉じる
-                </button>
-            </div>
         </div>
     </div>
 
@@ -651,7 +659,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <!-- アプリケーション (ES Module) -->
-    <script type="module" src="js/app.js?v=0.93"></script>
+    <script type="module" src="js/app.js?v=0.93a"></script>
 
 </body>
 

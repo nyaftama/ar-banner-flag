@@ -4,10 +4,10 @@
  * ダッシュボード設定 & 個別調整モード、倍率変更（1x/2x/3x）、フォトライブラリ
  */
 
-import { ARScene } from './ar-scene.js?v=0.93';
-import { BannerFlag } from './banner-flag.js?v=0.93';
-import { TouchControls } from './touch-controls.js?v=0.93';
-import { captureComposite, downloadBlob } from './capture.js?v=0.93';
+import { ARScene } from './ar-scene.js?v=0.93a';
+import { BannerFlag } from './banner-flag.js?v=0.93a';
+import { TouchControls } from './touch-controls.js?v=0.93a';
+import { captureComposite, downloadBlob } from './capture.js?v=0.93a';
 
 // ────────── 定数 ──────────
 const MAX_FLAGS = 3;
@@ -145,6 +145,7 @@ let pendingSwitchFlagIndex = -1;
 // モーダル関連
 const shareModal = $('shareModal');
 const galleryModalTitle = $('galleryModalTitle');
+const galleryModalBadge = $('galleryModalBadge');
 const galleryEmptyState = $('galleryEmptyState');
 const galleryContentArea = $('galleryContentArea');
 const galleryThumbnails = $('galleryThumbnails');
@@ -163,10 +164,27 @@ const toast = $('toast');
 
 // ────────── ユーティリティ ──────────
 
+let toastTimeoutId = null;
+
 function showToast(msg, duration = 2500) {
+  if (toastTimeoutId) {
+    clearTimeout(toastTimeoutId);
+    toastTimeoutId = null;
+  }
+
   toast.textContent = msg;
+
+  if (toast.classList.contains('show')) {
+    toast.classList.remove('show');
+    void toast.offsetWidth; // リフロー強制でトランジション再起動
+  }
+
   toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), duration);
+
+  toastTimeoutId = setTimeout(() => {
+    toast.classList.remove('show');
+    toastTimeoutId = null;
+  }, duration);
 }
 
 function updateFlagCount() {
@@ -234,12 +252,13 @@ function getShadowIntensitySvg(pct, angleDeg = (envSettings?.lightAngle ?? 135))
 }
 
 /**
- * 風の向き (左上に風シンボルバッジ + 中央にコンパス円&回転矢印)
+ * 風の向き (矢印の反対側に風シンボルバッジ + 中央にコンパス円&回転矢印)
  */
 function getWindDirectionSvg(deg) {
+  const oppDeg = (deg + 180) % 360;
   return `
     <div class="dir-icon-badge-wrapper">
-      <span class="dir-symbol-badge">
+      <span class="dir-symbol-badge dynamic" style="transform: translate(-50%, -50%) rotate(${oppDeg}deg) translateY(-16px) rotate(-${oppDeg}deg);">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"></path>
         </svg>
@@ -256,12 +275,13 @@ function getWindDirectionSvg(deg) {
 }
 
 /**
- * 光の向き (左上に太陽シンボルバッジ[100%光強度と同じ] + 中央にコンパス円&回転矢印)
+ * 光の向き (矢印の反対側に太陽シンボルバッジ + 中央にコンパス円&回転矢印)
  */
 function getLightDirectionSvg(deg) {
+  const oppDeg = (deg + 180) % 360;
   return `
     <div class="dir-icon-badge-wrapper">
-      <span class="dir-symbol-badge">
+      <span class="dir-symbol-badge dynamic" style="transform: translate(-50%, -50%) rotate(${oppDeg}deg) translateY(-16px) rotate(-${oppDeg}deg);">
         <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
           <circle cx="14" cy="14" r="5" fill="currentColor" fill-opacity="0.2"/>
           <line x1="14" y1="2" x2="14" y2="6"/>
@@ -337,12 +357,13 @@ function getLightColorSvg(temp) {
 }
 
 /**
- * 旗の向き (左上に旗シンボルバッジ + 中央にコンパス円&回転矢印)
+ * 旗の向き (矢印の反対側に旗シンボルバッジ + 中央にコンパス円&回転矢印)
  */
 function getFlagRotationSvg(deg) {
+  const oppDeg = (deg + 180) % 360;
   return `
     <div class="dir-icon-badge-wrapper">
-      <span class="dir-symbol-badge">
+      <span class="dir-symbol-badge dynamic" style="transform: translate(-50%, -50%) rotate(${oppDeg}deg) translateY(-16px) rotate(-${oppDeg}deg);">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
           <line x1="4" y1="22" x2="4" y2="15"></line>
@@ -1155,9 +1176,10 @@ function updateGalleryBadge() {
 
 function renderGalleryModal() {
   const count = capturedPhotos.length;
-  galleryModalTitle.textContent = `撮影した写真 (${count} / ${MAX_PHOTOS}枚)`;
+  galleryModalTitle.textContent = '撮影した写真';
 
   if (count === 0) {
+    if (galleryModalBadge) galleryModalBadge.textContent = '0 枚';
     galleryEmptyState.style.display = 'flex';
     galleryContentArea.style.display = 'none';
     return;
@@ -1168,6 +1190,10 @@ function renderGalleryModal() {
 
   if (currentPhotoIndex >= count) currentPhotoIndex = count - 1;
   if (currentPhotoIndex < 0) currentPhotoIndex = 0;
+
+  if (galleryModalBadge) {
+    galleryModalBadge.textContent = `${currentPhotoIndex + 1} / ${count} 枚`;
+  }
 
   // サムネイル一覧の生成
   galleryThumbnails.innerHTML = '';
